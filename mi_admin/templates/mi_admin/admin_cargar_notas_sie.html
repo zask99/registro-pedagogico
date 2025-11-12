@@ -1,0 +1,332 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cargar Notas al SIE - Registro Pedagógico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos personalizados para los mensajes de Django */
+        .message-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .message-box {
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .message-box.success { background-color: #22c55e; }
+        .message-box.error   { background-color: #ef4444; }
+        .message-box.warning { background-color: #f59e0b; }
+        .message-box.info    { background-color: #3b82f6; }
+        .message-box.debug   { background-color: #6b7280; }
+        
+        /* Estilo para el spinner de carga (oculto por defecto) */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, .1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        <aside id="sidebar" class="w-72 bg-gray-800 text-white flex flex-col fixed h-full shadow-lg z-20 transition-transform duration-300 ease-in-out">
+            <div class="h-20 flex items-center justify-between px-4 shadow-md">
+                <h1 class="text-2xl font-bold tracking-wide text-indigo-300">📘 Registro Pedagógico</h1>
+                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
+                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none"
+                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+            <nav class="flex-1 py-6 px-4 space-y-3 overflow-y-auto">
+                <a href="/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <span>Inicio</span>
+                </a>
+                <a href="/registrar-persona/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <span>Registrar Usuario</span>
+                </a>
+                <a href="/cursos/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <span>Cursos</span>
+                </a>
+                <a href="/materias/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <span>Materias</span>
+                </a>
+                <a href="/trimestres/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <span>Trimestres</span>
+                </a>
+            </nav>
+            <div class="p-4 mt-auto border-t border-gray-700">
+                <form action="/logout/" method="post" class="inline w-full">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="XYZ">
+                    <button type="submit" class="flex items-center justify-center space-x-3 w-full px-3 py-3 rounded-md font-medium text-white bg-red-600 hover:bg-red-700 transition">
+                        <svg class="h-6 w-6" ...><path .../></svg>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <button id="sidebar-open-btn" aria-label="Abrir menú"
+                class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
+            <svg class="h-7 w-7" ...><path .../></svg>
+        </button>
+
+        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out">
+            <div class="container mx-auto p-10">
+                
+                <header class="mb-10 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-5xl font-extrabold text-gray-800 drop-shadow-sm">Cargar Notas al SIE</h2>
+                        <p class="text-xl text-gray-500 mt-2">Inicia el proceso de carga automática al sistema del ministerio.</p>
+                    </div>
+                    <a href="{% url 'mi_admin:main_dashboard' %}" class="text-indigo-600 hover:text-indigo-800 font-medium">
+                        <span class="inline-flex items-center">
+                            <svg class="h-5 w-5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
+                            </svg>
+                            Volver al Dashboard
+                        </span>
+                    </a>
+                </header>
+
+                <form id="sie-form" action="{% url 'mi_admin:vista_subir_notas_sie' %}" method="post" class="bg-white p-10 rounded-xl shadow-lg max-w-4xl mx-auto space-y-8">
+                    {% csrf_token %}
+                    
+                    <fieldset class="border-b border-gray-200 pb-6">
+                        <legend class="text-2xl font-bold text-indigo-700 mb-4">1. Seleccione las Notas</legend>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label for="trimestre" class="block text-sm font-medium text-gray-700">Trimestre</label>
+                                <select id="trimestre" name="trimestre" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                                    <option value="">Seleccione...</option>
+                                    {% for trim in trimestres %}
+                                        <option value="{{ trim.id }}">{{ trim }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="curso" class="block text-sm font-medium text-gray-700">Curso</label>
+                                <select id="curso" name="curso" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                                    <option value="">Seleccione...</option>
+                                    {% for curso in cursos %}
+                                        <option value="{{ curso.id }}">{{ curso.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div>
+                                <label for="materia" class="block text-sm font-medium text-gray-700">Materia</label>
+                                <select id="materia" name="materia" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                                    <option value="">Seleccione...</option>
+                                    {% for materia in materias %}
+                                        <option value="{{ materia.id }}">{{ materia.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 flex items-center space-x-4">
+                            <button type="button" id="preview-button" class="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                </svg>
+                                Previsualizar Notas
+                            </button>
+                            <div id="preview-spinner" class="spinner hidden"></div>
+                        </div>
+                        </fieldset>
+
+                    <fieldset class="border-b border-gray-200 pb-6">
+                        <legend class="text-2xl font-bold text-red-700 mb-4">2. Credenciales del SIE</legend>
+                        <p class="text-sm text-gray-500 mb-4">Estas credenciales se usarán solo para esta carga y no se guardarán.</p>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="username_sie" class="block text-sm font-medium text-gray-700">Usuario SIE (Director)</label>
+                                <input type="text" name="username_sie" id="username_sie" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                            </div>
+                            <div>
+                                <label for="password_sie" class="block text-sm font-medium text-gray-700">Contraseña SIE</label>
+                                <input type="password" name="password_sie" id="password_sie" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div>
+                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                            <svg class="h-6 w-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
+    
+                            Iniciar Carga Automática
+                        </button>
+                    </div>
+                </form>
+
+                <div id="preview-section" class="bg-white p-10 rounded-xl shadow-lg max-w-4xl mx-auto mt-12 hidden">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Previsualización de Notas</h3>
+                    <div id="preview-error" class="hidden p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
+                        </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estudiante</th>
+                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">C.I.</th>
+                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nota Final</th>
+                                </tr>
+                            </thead>
+                            <tbody id="preview-table-body" class="bg-white divide-y divide-gray-200">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+                </div>
+
+            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200">
+                <p>&copy; 2025 Registro Pedagógico. Todos los derechos reservados.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div id="message-container" class="message-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-box {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // ... (Tu código de animación de mensajes y sidebar va aquí) ...
+            // (No lo he borrado, solo lo he omitido por brevedad)
+        });
+    </script>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewButton = document.getElementById('preview-button');
+        const previewSpinner = document.getElementById('preview-spinner');
+        const previewSection = document.getElementById('preview-section');
+        const previewTableBody = document.getElementById('preview-table-body');
+        const previewError = document.getElementById('preview-error');
+
+        // Formulario y token CSRF
+        const sieForm = document.getElementById('sie-form');
+        const csrfToken = sieForm.querySelector('input[name="csrfmiddlewaretoken"]').value;
+
+        previewButton.addEventListener('click', async function() {
+            // 1. Mostrar spinner y ocultar errores/tabla anteriores
+            previewSpinner.classList.remove('hidden');
+            previewSection.classList.add('hidden');
+            previewError.classList.add('hidden');
+            previewTableBody.innerHTML = ''; // Limpiar tabla
+
+            // 2. Obtener los valores de los dropdowns
+            const trimestreId = document.getElementById('trimestre').value;
+            const cursoId = document.getElementById('curso').value;
+            const materiaId = document.getElementById('materia').value;
+
+            // 3. Validar que se haya seleccionado algo
+            if (!trimestreId || !cursoId || !materiaId) {
+                showError('Por favor, seleccione un trimestre, un curso y una materia para previsualizar.');
+                return;
+            }
+
+            try {
+                // 4. Construir la URL con query parameters
+                const queryParams = new URLSearchParams({
+                    trimestre_id: trimestreId,
+                    curso_id: cursoId,
+                    materia_id: materiaId
+                });
+                
+                // Esta es la URL que debemos crear en urls.py
+                const url = `{% url 'mi_admin:ajax_preview_notas' %}?${queryParams.toString()}`;
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+
+                // 5. Procesar la respuesta
+                if (data.error) {
+                    showError(data.error);
+                } else if (data.notas && data.notas.length > 0) {
+                    populateTable(data.notas);
+                } else {
+                    showError('No se encontraron notas para la selección actual.');
+                }
+
+            } catch (error) {
+                console.error('Error en fetch:', error);
+                showError('Ocurrió un error al consultar las notas. Revise la consola.');
+            } finally {
+                // 6. Ocultar spinner
+                previewSpinner.classList.add('hidden');
+            }
+        });
+
+        function populateTable(notas) {
+            let rowHtml = '';
+            notas.forEach((nota, index) => {
+                rowHtml += `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${nota.nombre_estudiante}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${nota.ci_estudiante || 'N/A'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-bold">${nota.nota_final}</td>
+                    </tr>
+                `;
+            });
+            previewTableBody.innerHTML = rowHtml;
+            previewSection.classList.remove('hidden');
+        }
+
+        function showError(message) {
+            previewError.textContent = message;
+            previewError.classList.remove('hidden');
+            previewSection.classList.remove('hidden'); // Muestra la sección para que se vea el error
+            previewSpinner.classList.add('hidden');
+        }
+    });
+    </script>
+
+</body>
+</html>

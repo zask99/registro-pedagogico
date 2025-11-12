@@ -1,0 +1,2 @@
+--- Listado de Usuarios ---
+ID: 60, Username: docente1, Email: docente1@colegio.com

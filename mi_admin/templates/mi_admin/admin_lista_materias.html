@@ -1,0 +1,375 @@
+{% load static %}
+{% load custom_filters %} {# Moved to the top #}
+
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Materias - Registro Pedagógico</title> {# Title content from base_admin.html and original admin_lista_materias.html combined #}
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen font-sans">
+
+    <header class="bg-blue-800 text-white py-5 px-6 shadow-lg flex justify-between items-center">
+        <h1 class="text-2xl font-extrabold tracking-wide">📘 Registro Pedagógico - Admin</h1>
+
+        <nav>
+            <ul class="flex space-x-6 text-sm font-medium">
+                <li><a href="{% url 'mi_admin:main_dashboard' %}" class="hover:text-blue-300 transition">🏠 Inicio</a></li>
+                <li><a href="{% url 'mi_admin:registrar_persona' %}" class="hover:text-blue-300 transition">👤 Registrar Usuario</a></li>
+                <li><a href="{% url 'mi_admin:admin_listar_cursos' %}" class="hover:text-blue-300 transition">📚 Cursos</a></li>
+                <li><a href="{% url 'mi_admin:admin_materias_list' %}" class="hover:text-blue-300 transition">📖 Materias</a></li>
+            </ul>
+        </nav>
+
+        <div class="flex items-center gap-4 text-sm">
+            <span class="italic text-blue-200">👋 Hola, <strong>{{ user.username }}</strong> (Admin)</span>
+            <form action="{% url 'mi_admin:logout' %}" method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-lg font-semibold shadow transition">
+                    🔒 Cerrar Sesión
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-8">
+        <h2 class="text-4xl font-bold text-center text-blue-400 drop-shadow mb-10 animate-fade-in">📖 Gestión de Materias</h2> {# Original content from admin_lista_materias.html #}
+
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div class="px-4 py-3 mb-2 rounded-lg text-sm font-semibold
+                        {% if message.tags == 'success' %} bg-green-600 text-white
+                        {% elif message.tags == 'error' %} bg-red-600 text-white
+                        {% elif message.tags == 'warning' %} bg-yellow-500 text-black
+                        {% else %} bg-blue-600 text-white
+                        {% endif %}
+                    ">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <div class="flex justify-end mb-6">
+            <button id="btn-add-materia" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                ➕ Añadir Nueva Materia
+            </button>
+        </div>
+
+        <div class="bg-gray-800 p-6 rounded-lg shadow-xl">
+            <h3 class="text-2xl font-semibold text-blue-300 mb-4">Listado de Materias</h3>
+            {% if materias %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full bg-gray-700 rounded-lg overflow-hidden shadow-md">
+                        <thead class="bg-gray-600">
+                            <tr>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Nombre</th>
+                                <th class="py-3 px-4 text-left text-xs font-medium text-gray-200 uppercase tracking-wider">Descripción</th>
+                                <th class="py-3 px-4 text-center text-xs font-medium text-gray-200 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-600">
+                            {% for materia in materias %}
+                                <tr class="hover:bg-gray-650 transition duration-150 ease-in-out" id="materia-row-{{ materia.id }}">
+                                    <td class="py-3 px-4 whitespace-nowrap text-sm text-gray-100">{{ materia.nombre }}</td>
+                                    <td class="py-3 px-4 text-sm text-gray-300">{{ materia.descripcion|default:"N/A" }}</td>
+                                    <td class="py-3 px-4 whitespace-nowrap text-center text-sm font-medium">
+                                        <button data-materia-id="{{ materia.id }}" data-materia-nombre="{{ materia.nombre }}"
+                                                class="btn-designar-docente bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-3 rounded-md text-xs transition duration-300 ease-in-out">
+                                            👨‍🏫 Designar Docente
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-gray-300 text-center py-4">No hay materias registradas aún.</p>
+            {% endif %}
+        </div>
+    </main>
+
+    <div id="modal-add-materia" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-md animate-scale-in">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                <h3 class="text-2xl font-bold text-blue-400">Añadir Nueva Materia</h3>
+                <button class="text-gray-400 hover:text-gray-200 text-xl font-bold" onclick="closeModal('modal-add-materia')">&times;</button>
+            </div>
+            <form id="form-add-materia" method="POST" action="{% url 'mi_admin:admin_materias_create' %}">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="id_nombre" class="block text-gray-300 text-sm font-bold mb-2">Nombre:</label>
+                    {{ form_materia.nombre }}
+                    <div id="nombre-errors" class="text-red-400 text-xs mt-1"></div>
+                </div>
+                <div class="mb-6">
+                    <label for="id_descripcion" class="block text-gray-300 text-sm font-bold mb-2">Descripción:</label>
+                    {{ form_materia.descripcion }}
+                    <div id="descripcion-errors" class="text-red-400 text-xs mt-1"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                        Guardar Materia
+                    </button>
+                    <button type="button" onclick="closeModal('modal-add-materia')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-designar-docente" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50 hidden">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-2xl w-full max-w-lg animate-scale-in">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-700 pb-4">
+                <h3 class="text-2xl font-bold text-blue-400" id="designar-docente-title">Designar Docente para: <span class="text-blue-200"></span></h3>
+                <button class="text-gray-400 hover:text-gray-200 text-xl font-bold" onclick="closeModal('modal-designar-docente')">&times;</button>
+            </div>
+            <div class="mb-4">
+                <label for="anio_academico_filter" class="block text-gray-300 text-sm font-bold mb-2">Filtrar Asignaciones por Año Académico:</label>
+                <input type="number" id="anio_academico_filter" value="{{ request.GET.anio|default:current_year }}"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        min="2000" max="2100">
+            </div>
+            <div class="bg-gray-700 p-4 rounded-md mb-6 max-h-60 overflow-y-auto">
+                <h4 class="text-lg font-semibold text-gray-200 mb-3">Asignaciones Existentes:</h4>
+                <div id="asignaciones-existentes" class="text-sm text-gray-300 space-y-2">
+                    <p>Cargando asignaciones...</p>
+                </div>
+            </div>
+
+            <form id="form-designar-docente" method="POST" action="{% url 'mi_admin:admin_materias_assign_teacher' %}">
+                {% csrf_token %}
+                <input type="hidden" name="materia_id" id="designar-materia-id">
+
+                <div class="mb-4">
+                    <label for="id_curso" class="block text-gray-300 text-sm font-bold mb-2">Curso:</label>
+                    {{ form_asignacion_docente.curso }}
+                    <div id="curso-errors" class="text-red-400 text-xs mt-1"></div>
+                </div>
+                <div class="mb-4">
+                    <label for="id_docente" class="block text-gray-300 text-sm font-bold mb-2">Docente:</label>
+                    {{ form_asignacion_docente.docente }}
+                    <div id="docente-errors" class="text-red-400 text-xs mt-1"></div>
+                </div>
+                <div class="mb-6">
+                    <label for="id_anio_academico" class="block text-gray-300 text-sm font-bold mb-2">Año Académico:</label>
+                    {{ form_asignacion_docente.anio_academico }}
+                    <div id="anio_academico-errors" class="text-red-400 text-xs mt-1"></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                        Asignar Docente
+                    </button>
+                    <button type="button" onclick="closeModal('modal-designar-docente')" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none focus:shadow-outline transition duration-300 ease-in-out">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 text-center py-5 mt-16 text-sm text-gray-400 border-t border-gray-700">
+        &copy; 2025 Registro Pedagógico. Todos los derechos reservados.
+    </footer>
+
+    <style>
+        .animate-fade-in {
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-scale-in {
+            animation: scaleIn 0.3s ease-out forwards;
+        }
+        @keyframes scaleIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+    </style>
+
+    {# Script section from base_admin.html and original admin_lista_materias.html combined #}
+    <script>
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            document.querySelectorAll('.text-red-400').forEach(el => el.textContent = '');
+            if (modalId === 'modal-add-materia') {
+                document.getElementById('form-add-materia').reset();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // --- Lógica para Añadir Materia ---
+            const btnAddMateria = document.getElementById('btn-add-materia');
+            const formAddMateria = document.getElementById('form-add-materia');
+
+            btnAddMateria.addEventListener('click', function() {
+                openModal('modal-add-materia');
+            });
+
+            formAddMateria.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const formData = new FormData(formAddMateria);
+                const data = {};
+                for (let [key, value] of formData.entries()) {
+                    data[key] = value;
+                }
+
+                document.querySelectorAll('.text-red-400').forEach(el => el.textContent = '');
+
+                fetch(formAddMateria.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Materia añadida exitosamente!');
+                        closeModal('modal-add-materia');
+                        window.location.reload();
+                    } else {
+                        if (data.errors) {
+                            for (const field in data.errors) {
+                                const errorDiv = document.getElementById(`${field}-errors`);
+                                if (errorDiv) {
+                                    errorDiv.textContent = data.errors[field][0];
+                                }
+                            }
+                        } else {
+                            alert('Error al añadir materia: ' + data.message);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ocurrió un error en la solicitud.');
+                });
+            });
+
+            // --- Lógica para Designar Docente ---
+            const btnDesignarDocente = document.querySelectorAll('.btn-designar-docente');
+            const designarMateriaIdInput = document.getElementById('designar-materia-id');
+            const designarDocenteTitle = document.getElementById('designar-docente-title').querySelector('span');
+            const formDesignarDocente = document.getElementById('form-designar-docente');
+            const anioAcademicoFilter = document.getElementById('anio_academico_filter');
+            const asignacionesExistentesDiv = document.getElementById('asignaciones-existentes');
+
+            btnDesignarDocente.forEach(button => {
+                button.addEventListener('click', function() {
+                    const materiaId = this.dataset.materiaId;
+                    const materiaNombre = this.dataset.materiaNombre;
+
+                    designarMateriaIdInput.value = materiaId;
+                    designarDocenteTitle.textContent = materiaNombre;
+
+                    const currentYear = new Date().getFullYear();
+                    anioAcademicoFilter.value = currentYear;
+                    loadAsignaciones(materiaId, currentYear);
+
+                    openModal('modal-designar-docente');
+                });
+            });
+
+            anioAcademicoFilter.addEventListener('change', function() {
+                const materiaId = designarMateriaIdInput.value;
+                const selectedAnio = this.value;
+                if (materiaId) {
+                    loadAsignaciones(materiaId, selectedAnio);
+                }
+            });
+
+            function loadAsignaciones(materiaId, anio) {
+                asignacionesExistentesDiv.innerHTML = '<p>Cargando asignaciones...</p>';
+                fetch(`{% url 'mi_admin:api_get_materia_assignments' 0 %}`.replace('0', materiaId) + `?anio=${anio}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.length > 0) {
+                            asignacionesExistentesDiv.innerHTML = '';
+                            data.forEach(asig => {
+                                const p = document.createElement('p');
+                                p.innerHTML = `<span class="font-bold">${asig.curso_nombre}:</span> ${asig.docente_nombre}`;
+                                asignacionesExistentesDiv.appendChild(p);
+                            });
+                        } else {
+                            asignacionesExistentesDiv.innerHTML = '<p class="text-gray-400">No hay asignaciones para esta materia en el año seleccionado.</p>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error al cargar asignaciones:', error);
+                        asignacionesExistentesDiv.innerHTML = '<p class="text-red-400">Error al cargar asignaciones.</p>';
+                    });
+            }
+
+            formDesignarDocente.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const materiaId = document.getElementById('designar-materia-id').value;
+                const cursoId = document.getElementById('id_curso').value;
+                const docenteId = document.getElementById('id_docente').value;
+                const anioAcademico = document.getElementById('id_anio_academico').value;
+
+                document.querySelectorAll('.text-red-400').forEach(el => el.textContent = '');
+
+                fetch(formDesignarDocente.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        materia_id: materiaId,
+                        curso: cursoId, // CORREGIDO: de 'curso_id' a 'curso'
+                        docente: docenteId, // CORREGIDO: de 'docente_id' a 'docente'
+                        anio_academico: anioAcademico
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        loadAsignaciones(materiaId, anioAcademicoFilter.value);
+                    } else {
+                        if (data.errors) {
+                            for (const field in data.errors) {
+                                const errorDiv = document.getElementById(`${field}-errors`);
+                                if (errorDiv) {
+                                    errorDiv.textContent = data.errors[field][0];
+                                }
+                            }
+                        } else {
+                            alert('Error al asignar docente: ' + data.message);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Ocurrió un error en la solicitud de asignación.');
+                });
+            });
+        });
+    </script>
+</body>
+</html>

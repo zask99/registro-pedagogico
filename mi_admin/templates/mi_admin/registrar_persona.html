@@ -1,0 +1,373 @@
+{% load static %}
+{% load widget_tweaks %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Registrar Usuario - Registro Pedagógico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* (Estilos de mensajes y sidebar, sin cambios) */
+        .message-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 50; display: flex; flex-direction: column; gap: 0.75rem; }
+        .message-box { padding: 1rem 1.5rem; border-radius: 0.5rem; font-weight: 500; color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease; }
+        .message-box.success { background-color: #22c55e; }
+        .message-box.error   { background-color: #ef4444; }
+        .message-box.warning { background-color: #f59e0b; }
+        .message-box.info    { background-color: #3b82f6; }
+        .message-box.debug   { background-color: #6b7280; }
+        .hidden-form-section { display: none; }
+        .animate-fade-in { animation: fadeIn 0.8s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside id="sidebar" class="w-72 bg-gray-800 text-white flex flex-col fixed h-full shadow-lg z-20 transition-transform duration-300 ease-in-out">
+            <div class="relative p-4 pt-6 border-b border-gray-700"> 
+                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="absolute top-2 right-2 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
+                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div class="flex justify-center mb-4 mt-6">
+                    <img src="{% static 'img/img.jpg' %}" alt="Logo de la Institución" class="h-32 w-32 rounded-full border-4 border-gray-600 object-cover">
+                </div>
+                <h2 class="text-xl font-semibold text-center text-gray-100 uppercase mb-4">
+                    UNIDAD EDUCATIVA<br>REPÚBLICA ÁRABE DE EGIPTO
+                </h2>
+            </div>
+
+            <nav class="flex-1 py-6 px-4 space-y-3 overflow-y-auto">
+                <a href="{% url 'mi_admin:dashboard_administrativo' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+                    <span>Inicio</span>
+                </a>
+                <a href="{% url 'mi_admin:registrar_persona' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium bg-gray-700 text-white transition"> <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A1.875 1.875 0 0 1 14.25 21h-4.5A1.875 1.875 0 0 1 3 19.235Z"/></svg>
+                    <span>Registrar Usuario</span>
+                </a>
+                <a href="{% url 'mi_admin:admin_listar_cursos' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                    <span>Cursos</span>
+                </a>
+                <a href="{% url 'mi_admin:admin_materias_list' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    <span>Materias</span>
+                </a>
+                <a href="{% url 'mi_admin:admin_listar_trimestres' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+                    <span>Trimestres</span>
+                </a>
+            </nav>
+
+            <div class="p-4 mt-auto border-t border-gray-700">
+                <form action="{% url 'logout' %}" method="post" class="inline w-full">
+                    {% csrf_token %}
+                    <button type="submit" class="flex items-center justify-center space-x-3 w-full px-3 py-3 rounded-md font-medium text-white bg-red-600 hover:bg-red-700 transition">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/></svg>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <button id="sidebar-open-btn" aria-label="Abrir menú"
+                class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
+            <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+
+        
+        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out">
+            <div class="container mx-auto p-10">
+                
+                <header class="mb-10">
+                    <h2 class="text-4xl font-extrabold text-gray-800 drop-shadow-sm">📝 Registrar Nuevo Usuario</h2>
+                    <p class="text-lg text-gray-500 mt-2">Completa los datos para crear una nueva cuenta y perfil.</p>
+                </header>
+
+                <div class="bg-white p-8 rounded-xl shadow-lg animate-fade-in w-full max-w-4xl mx-auto">
+                    
+                    <form method="post" action="{% url 'mi_admin:registrar_persona' %}" class="space-y-6" novalidate>
+                        {% csrf_token %}
+
+                        <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-inner mb-6">
+                            <legend class="text-xl font-semibold text-indigo-700 mb-4 px-2">Datos de Cuenta (Manual)</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="{{ usuario_form.rol.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-700">{{ usuario_form.rol.label }}:</label>
+                                    {{ usuario_form.rol|attr:"class: w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" }}
+                                    {% if usuario_form.rol.errors %}<p class="text-red-500 text-xs mt-1">{{ usuario_form.rol.errors|join:", " }}</p>{% endif %}
+                                </div>
+                                <div>
+                                    <label for="usuario-email" class="block text-sm font-medium mb-1 text-gray-700">Email:</label>
+                                    <input type="email" name="usuario-email" id="usuario-email" required
+                                           class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                    <p class="text-xs text-gray-500 mt-1">Requerido para todos los roles.</p>
+                                </div>
+                                <div>
+                                    <label for="usuario-username" class="block text-sm font-medium mb-1 text-gray-700">Nombre de Usuario:</label>
+                                    <input type="text" name="usuario-username" id="usuario-username" required
+                                           class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label for="usuario-password" class="block text-sm font-medium mb-1 text-gray-700">Contraseña:</label>
+                                    <input type="password" name="usuario-password" id="usuario-password" required
+                                           class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                        </fieldset>
+                        
+                        <div id="importar-excel-section" class="hidden-form-section">
+                            <hr class="my-6 border-gray-300">
+                            <p class="text-center text-gray-500 font-semibold">... O ...</p>
+                        </div>
+                        
+                        <fieldset class="border border-gray-200 rounded-lg p-6 bg-white shadow-inner mb-6">
+                            <legend class="text-xl font-semibold text-indigo-700 mb-4 px-2">Datos Personales Comunes</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% for field in persona_form %}
+                                <div>
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-700">{{ field.label }}:</label>
+                                    {{ field|attr:"class: w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" }}
+                                    {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+
+                        <fieldset id="estudiante-fields" class="border border-gray-200 rounded-lg p-6 bg-white shadow-inner mb-6 hidden-form-section">
+                            <legend class="text-xl font-semibold text-indigo-700 mb-4 px-2">Datos de Estudiante (Manual)</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% for field in estudiante_form %}
+                                <div>
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-700">{{ field.label }}:</label>
+                                    {{ field|attr:"class: w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" }}
+                                    {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+
+                        <fieldset id="docente-fields" class="border border-gray-200 rounded-lg p-6 bg-white shadow-inner mb-6 hidden-form-section">
+                           <legend class="text-xl font-semibold text-indigo-700 mb-4 px-2">Datos de Docente</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% for field in docente_form %}
+                                <div>
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-700">{{ field.label }}:</label>
+                                    {{ field|attr:"class: w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" }}
+                                    {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+                        <fieldset id="administrativo-fields" class="border border-gray-200 rounded-lg p-6 bg-white shadow-inner mb-6 hidden-form-section">
+                            <legend class="text-xl font-semibold text-indigo-700 mb-4 px-2">Datos de Administrativo</legend>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% for field in administrativo_form %}
+                                <div>
+                                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium mb-1 text-gray-700">{{ field.label }}:</label>
+                                    {{ field|attr:"class: w-full px-4 py-2 rounded-lg border border-gray-300 bg-gray-50 text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500" }}
+                                    {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors|join:", " }}</p>{% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </fieldset>
+
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300 transform hover:scale-105">
+                            Registrar Persona (Manual)
+                        </button>
+                    </form>
+                    <div id="importar-excel-section-separada" class="hidden-form-section mt-10">
+                        <hr class="my-6 border-gray-300">
+                        <h3 class="text-2xl font-bold text-green-700 mb-4">Importación Masiva de Estudiantes</h3>
+                        <p class="text-sm text-gray-600 mb-4">
+                            Sube un archivo `.xlsx` para registrar múltiples estudiantes en un curso. El archivo debe contener las columnas (mínimo): 
+                            <code class="text-xs bg-gray-200 p-1 rounded">codigo_rude</code>, 
+                            <code class="text-xs bg-gray-200 p-1 rounded">carnet</code>, 
+                            <code class="text-xs bg-gray-200 p-1 rounded">nombres</code>, 
+                            <code class="text-xs bg-gray-200 p-1 rounded">apellidos</code>, 
+                            <code class="text-xs bg-gray-200 p-1 rounded">email</code>.
+                        </p>
+                        
+                        <form action="{% url 'mi_admin:importar_estudiantes_excel' %}" method="post" enctype="multipart/form-data" class="space-y-4 p-6 border border-gray-200 rounded-lg bg-gray-50 shadow-inner">
+                            {% csrf_token %}
+                            <div>
+                                <label for="id_curso_excel" class="block text-sm font-medium mb-1 text-gray-700">Seleccionar Curso para Inscripción:</label>
+                                <select name="curso_id" id="id_curso_excel" required
+                                        class="w-full px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                    <option value="">-- Seleccione un curso --</option>
+                                    {% for curso in cursos %}
+                                        <option value="{{ curso.id }}">{{ curso.get_full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label for="id_excel_file" class="block text-sm font-medium mb-1 text-gray-700">Archivo Excel (.xlsx):</label>
+                                <input type="file" name="excel_file" id="id_excel_file" required accept=".xlsx"
+                                       class="w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white focus:outline-none
+                                              file:mr-4 file:py-2 file:px-4
+                                              file:rounded-lg file:border-0 file:text-sm file:font-semibold
+                                              file:bg-green-50 file:text-green-700 hover:file:bg-green-100">
+                            </div>
+                            
+                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition duration-300 transform hover:scale-105">
+                                Importar Estudiantes desde Excel
+                            </button>
+                        </form>
+                        </div>
+                    </div>
+
+            </div>
+
+            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200">
+                <p>&copy; {% now "Y" %} Registro Pedagógico. Todos los derechos reservados.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div id="message-container" class="message-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-box {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- Script 1: Lógica del Sidebar y Mensajes (del Dashboard) ---
+            
+            const messageBoxes = document.querySelectorAll('.message-box');
+            messageBoxes.forEach(function(box, index) {
+                setTimeout(() => {
+                    void box.offsetWidth;
+                    box.style.opacity = '1';
+                    box.style.transform = 'translateY(0)';
+                }, 100 * index);
+                setTimeout(() => {
+                    box.style.opacity = '0';
+                    box.style.transform = 'translateY(-20px)';
+                    box.addEventListener('transitionend', function() {
+                        box.remove();
+                    }, { once: true });
+                }, 4000 + (100 * index));
+            });
+
+            const sidebar = document.getElementById('sidebar');
+            const closeBtn = document.getElementById('sidebar-close-btn');
+            const openBtn  = document.getElementById('sidebar-open-btn');
+            const mainContent = document.getElementById('main-content'); 
+
+            function setSidebarClosed(closed) {
+                if (!sidebar || !openBtn || !mainContent || !closeBtn) return; // Seguridad
+                if (closed) {
+                    sidebar.classList.add('-translate-x-full');
+                    openBtn.classList.remove('hidden');
+                    if (mainContent) { 
+                        mainContent.classList.remove('ml-72');
+                        mainContent.classList.add('ml-0');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'false');
+                } else {
+                    sidebar.classList.remove('-translate-x-full');
+                    openBtn.classList.add('hidden');
+                    if (mainContent) {
+                        mainContent.classList.remove('ml-0');
+                        mainContent.classList.add('ml-72');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            const initiallyClosed = sidebar ? sidebar.classList.contains('-translate-x-full') : false;
+            setSidebarClosed(initiallyClosed);
+
+            function toggleSidebar() {
+                const isClosed = sidebar.classList.contains('-translate-x-full');
+                setSidebarClosed(!isClosed);
+            }
+
+            if(closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+            if(openBtn) openBtn.addEventListener('click', toggleSidebar);
+
+            document.addEventListener('click', (e) => {
+                if (sidebar && !sidebar.contains(e.target) && window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                    setSidebarClosed(true);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 1024) { // lg
+                    setSidebarClosed(false);
+                }
+            });
+
+            
+            // --- Script 2: Lógica del Formulario (de Registrar Persona) ---
+            
+            const rolSelect = document.getElementById('{{ usuario_form.rol.id_for_label }}'); 
+            
+            const estudianteFields = document.getElementById('estudiante-fields');
+            const docenteFields = document.getElementById('docente-fields');
+            const administrativoFields = document.getElementById('administrativo-fields');
+            
+            // --- MODIFICADO: Ahora apunta a la sección SEPARADA ---
+            const importExcelSection = document.getElementById('importar-excel-section-separada'); 
+            const usernameInput = document.getElementById('usuario-username');
+            const passwordInput = document.getElementById('usuario-password');
+
+            function toggleFormSections() {
+                if (!rolSelect || !estudianteFields || !docenteFields || !administrativoFields || !usernameInput || !passwordInput || !importExcelSection) {
+                    console.warn("Faltan elementos del formulario dinámico.");
+                    return; 
+                }
+                
+                const selectedRol = rolSelect.options[rolSelect.selectedIndex].text.toLowerCase().trim();
+
+                // Ocultar todas las secciones primero
+                estudianteFields.classList.add('hidden-form-section');
+                docenteFields.classList.add('hidden-form-section');
+                administrativoFields.classList.add('hidden-form-section');
+                importExcelSection.classList.add('hidden-form-section'); // Ocultar importación
+
+                // Habilitar campos manuales por defecto
+                usernameInput.disabled = false;
+                passwordInput.disabled = false;
+                usernameInput.value = "";
+                passwordInput.value = "";
+                usernameInput.placeholder = "Ej: jperez";
+                passwordInput.placeholder = "••••••••";
+
+                if (selectedRol === 'estudiante') {
+                    estudianteFields.classList.remove('hidden-form-section');
+                    importExcelSection.classList.remove('hidden-form-section'); // <-- MOSTRAR importación
+                    // Deshabilitar y poner placeholder para Estudiante (en modo manual)
+                    usernameInput.disabled = true;
+                    usernameInput.placeholder = "Se generará con el Código RUDE";
+                    passwordInput.disabled = true;
+                    passwordInput.placeholder = "Se generará con el Carnet";
+                } else if (selectedRol === 'docente') {
+                    docenteFields.classList.remove('hidden-form-section');
+                } else if (selectedRol === 'administrativo') {
+                    administrativoFields.classList.remove('hidden-form-section');
+                }
+            }
+
+            if(rolSelect) {
+                toggleFormSections();
+                rolSelect.addEventListener('change', toggleFormSections);
+            } else {
+                console.error("No se pudo encontrar el select de Rol ('{{ usuario_form.rol.id_for_label }}')");
+            }
+        });
+    </script>
+</body>
+</html>

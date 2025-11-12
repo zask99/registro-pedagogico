@@ -1,0 +1,887 @@
+{% load custom_filters %}
+{% load static %} <!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Calificaciones - Panel Docente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <style>
+    /* Estilos de mensajes (del template de admin) */
+    .message-container {
+        position: fixed; top: 1.5rem; right: 1.5rem; z-index: 1001; /* z-index alto */
+        display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .message-box {
+        padding: 1rem 1.5rem; border-radius: 0.5rem; font-weight: 500;
+        color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+        opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .message-box.success { background-color: #22c55e; }
+    .message-box.error   { background-color: #ef4444; }
+    .message-box.warning { background-color: #f59e0b; }
+    .message-box.info    { background-color: #3b82f6; }
+    .message-box.debug   { background-color: #6b7280; }
+
+    /* Estilos de la tabla de calificaciones */
+    .table-responsive { overflow-x: auto; }
+    table { border-spacing: 0; }
+    .sticky-header th {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: #e5e7eb; /* bg-gray-200 */
+    }
+    .border-right-light {
+      border-right: 1px solid rgba(209, 213, 219, 0.7); /* border-gray-300 */
+    }
+    .border-bottom-dark {
+      border-bottom: 2px solid #d1d5db; /* border-gray-300 */
+    }
+
+    /* Estilos de los modales de calificaciones */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.75);
+      display: flex; justify-content: center; align-items: center;
+      z-index: 1000; /* z-index menor que los mensajes */
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+    }
+    .modal-overlay.active {
+      opacity: 1; visibility: visible; pointer-events: auto;
+    }
+    .modal-content {
+      background-color: #ffffff;
+      padding: 2rem; border-radius: 0.5rem;
+      width: 90%; max-width: 500px;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5);
+      transform: translateY(-20px);
+      transition: transform 0.3s ease-in-out;
+    }
+    .modal-overlay.active .modal-content {
+      transform: translateY(0);
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+
+<body class="bg-gray-100 font-sans">
+ 
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside id="sidebar" class="w-72 bg-gray-800 text-white flex flex-col fixed h-full shadow-lg z-20 transition-transform duration-300 ease-in-out">
+            <div class="relative p-4 pt-6 border-b border-gray-700"> 
+                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="absolute top-2 right-2 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
+                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div class="flex justify-center mb-4 mt-6">
+                    <img src="{% static 'img/img.jpg' %}" alt="Logo de la Institución" class="h-32 w-32 rounded-full border-4 border-gray-600 object-cover">
+                </div>
+                <h2 class="text-xl font-semibold text-center text-gray-100 uppercase mb-4">
+                    UNIDAD EDUCATIVA<br>REPÚBLICA ÁRABE DE EGIPTO
+                </h2>
+            </div>
+
+            <nav class="flex-1 py-6 px-4 space-y-3 overflow-y-auto">
+                <a href="{% url 'mi_admin:dashboard_docente' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+                    <span>Inicio</span>
+                </a>
+
+                <a href="{% url 'mi_admin:listar_cursos_docente' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium bg-gray-700 text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                    <span>Mis Cursos</span>
+                </a>
+
+                <a href="#" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+                    <span>Horarios</span>
+                </a>
+                
+                <button id="open-profile-modal-btn" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition w-full text-left">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A1.875 1.875 0 0 1 14.25 21h-4.5A1.875 1.875 0 0 1 3 19.235Z"/></svg>
+                    <span>Datos Personales</span>
+                </button>
+            </nav>
+
+            <div class="p-4 mt-auto border-t border-gray-700">
+                <form action="{% url 'logout' %}" method="post" class="inline w-full">
+                    {% csrf_token %}
+                    <button type="submit" class="flex items-center justify-center space-x-3 w-full px-3 py-3 rounded-md font-medium text-white bg-red-600 hover:bg-red-700 transition">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/></svg>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <button id="sidebar-open-btn" aria-label="Abrir menú"
+                class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
+            <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+
+        
+        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out px-6 sm:px-10 py-8">
+            
+            <header class="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-4xl lg:text-5xl font-extrabold text-gray-800 drop-shadow-sm">Gestión de Calificaciones</h2>
+                    <p class="text-xl text-gray-500 mt-2">
+                        {% if selected_asignacion %}
+                            {{ selected_asignacion.curso.get_full_name }} ({{ selected_asignacion.materia.nombre }})
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex flex-wrap justify-center sm:justify-center gap-3">
+                    <a href="{% url 'mi_admin:listar_cursos_docente' %}" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg shadow-md transition duration-300 text-base flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                </div>
+            </header>
+
+            <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-2xl sm:text-3xl font-bold flex items-center gap-3 text-blue-700">
+                <i class="fas fa-users"></i> Lista de Estudiantes
+                </h2>
+                <form method="GET" class="flex flex-wrap justify-center gap-3">
+                <select name="asignacion" id="asignacion_select" onchange="this.form.submit()" class="bg-white border border-gray-300 text-gray-900 px-4 py-2 rounded-lg shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for asignacion in asignaciones %}
+                    <option value="{{ asignacion.id }}" {% if selected_asignacion and selected_asignacion.id == asignacion.id %}selected{% endif %}>
+                        {{ asignacion.curso.grado }}-{{ asignacion.curso.paralelo }} {{ asignacion.curso.get_niveles_display }} ({{ asignacion.materia.nombre }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <select name="trimestre" id="trimestre_select" onchange="this.form.submit()" class="bg-white border border-gray-300 text-gray-900 px-4 py-2 rounded-lg shadow-sm text-base focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    {% for trimestre in trimestres %}
+                    <option value="{{ trimestre.id }}" {% if selected_trimestre and selected_trimestre.id == trimestre.id %}selected{% endif %}>
+                        {{ trimestre.nombre }} ({{ trimestre.gestion }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <a href="{% url 'mi_admin:reporte_asignacion_trimestre_pdf' %}?asignacion={{ selected_asignacion.id }}&trimestre={{ selected_trimestre.id }}" 
+                    class="bg-green-600 hover:bg-green-500 text-white px-5 py-2 rounded-lg shadow-md text-base transition flex items-center gap-2">
+                    <i class="fas fa-file-pdf"></i> Generar PDF
+                </a>
+                </form>
+            </div>
+
+            <div class="table-responsive bg-white rounded-lg shadow-lg border border-gray-200">
+                <table class="w-full text-sm sm:text-base border-collapse" id="calificaciones_table">
+                <thead class="sticky-header">
+                    <tr class="bg-gray-200 text-blue-700 font-bold text-center uppercase">
+                    <th rowspan="3" class="border border-gray-300 w-[30px] rounded-tl-lg">NRO</th>
+                    <th rowspan="3" class="border border-gray-300 min-w-[150px]">Estudiante</th>
+                    <th colspan="{{ evaluaciones_saber|length|add:1 }}" id="cabecera_saber" class="border border-gray-300 border-right-light">Saber</th>
+                    <th colspan="{{ evaluaciones_hacer|length|add:1 }}" id="cabecera_hacer" class="border border-gray-300 border-right-light">Hacer</th>
+                    <th colspan="2" class="border border-gray-300 border-right-light">Ser</th>
+                    <th colspan="2" class="border border-gray-300">Decidir</th>
+                    <th rowspan="3" class="border border-gray-300 min-w-[200px]">Observaciones</th>
+                    <th rowspan="3" class="border border-gray-300 text-purple-700">Autoeval.</th>
+                    <th rowspan="3" class="border border-gray-300 text-pink-600">Prom. Trim.</th>
+                    <th rowspan="3" class="border border-gray-300 text-blue-700">Rango</th>
+                    <th rowspan="3" class="border border-gray-300 text-blue-700">Situación</th>
+                    </tr>
+
+                    <tr class="bg-gray-200 text-gray-800 text-center border-bottom-dark">
+                    <th colspan="{{ evaluaciones_saber|length|add:1 }}" class="border border-gray-300 border-right-light py-2" id="contenedor_btn_agregar_saber">
+                        <a href="#" id="btn_agregar_eval_saber" data-tipo-componente="Saber" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs sm:text-sm flex items-center gap-2 mx-auto shadow-sm">
+                        <i class="fas fa-plus"></i> Añadir Evaluación
+                        </a>
+                    </th>
+                    <th colspan="{{ evaluaciones_hacer|length|add:1 }}" class="border border-gray-300 border-right-light py-2" id="contenedor_btn_agregar_hacer">
+                        <a href="#" id="btn_agregar_eval_hacer" data-tipo-componente="Hacer" class="bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded text-xs sm:text-sm flex items-center gap-2 mx-auto shadow-sm">
+                        <i class="fas fa-plus"></i> Añadir Evaluación
+                        </a>
+                    </th>
+                    <th colspan="2" class="border border-gray-300 border-right-light py-2">
+                        <a href="{% url 'mi_admin:registrar_asistencia_curso' selected_asignacion.curso.id %}?trimestre_id={{ selected_trimestre.id }}&asignacion_id={{ selected_asignacion.id }}"
+                            class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-medium px-4 py-2 rounded-lg transition flex items-center gap-2 mx-auto">
+                            <i class="fas fa-calendar-check"></i> Asistencia
+                        </a>
+                    </th>
+                    <th colspan="2" class="border border-gray-300 py-2"></th>
+                    </tr>
+
+                    <tr class="bg-gray-100 text-gray-700 text-center text-xs sm:text-sm" id="fila_cabeceras_evaluacion">
+                    {# Saber evaluations headers #}
+                    {% for eval_saber in evaluaciones_saber %}
+                        <th class="border border-gray-300 px-2 py-2" data-subcomp-id="{{ eval_saber.subcomponente.id }}" data-tipo="Saber">
+                        {{ eval_saber.nombre }}
+                        <div class="flex justify-center gap-1 mt-1">
+                                        <button class="text-blue-500 hover:text-blue-400 text-lg edit-subcomponente-btn"
+                                onclick="abrirModalEditarSubcomponente('{{ eval_saber.id }}', '{{ eval_saber.nombre }}', '{{ eval_saber.ponderacion }}')"
+                                data-eval-id="{{ eval_saber.id }}" data-subcomp-id="{{ eval_saber.subcomponente.id }}"><i class="fas fa-edit"></i></button>
+
+                            <button class="text-red-500 hover:text-red-400 text-lg delete-subcomponente-btn"
+                                    onclick="confirmarEliminarSubcomponente('{{ eval_saber.id }}', '{{ eval_saber.nombre }}')"
+                                    data-eval-id="{{ eval_saber.id }}" data-subcomp-id="{{ eval_saber.subcomponente.id }}"><i class="fas fa-trash"></i></button>
+                        </div>
+                        </th>
+                    {% endfor %}
+                    <th class="border border-gray-300 text-yellow-600 font-semibold py-2 border-right-light" id="cabecera_prom_saber">Prom.</th>
+
+                    {# Hacer evaluations headers #}
+                    {% for eval_hacer in evaluaciones_hacer %}
+                        <th class="border border-gray-300 px-2 py-2" data-subcomp-id="{{ eval_hacer.subcomponente.id }}" data-tipo="Hacer">
+                        {{ eval_hacer.nombre }}
+                        <div class="flex justify-center gap-1 mt-1">
+                        <button class="text-blue-500 hover:text-blue-400 text-lg edit-subcomponente-btn"
+                                onclick="abrirModalEditarSubcomponente('{{ eval_hacer.id }}', '{{ eval_hacer.nombre }}', '{{ eval_hacer.ponderacion }}')"
+                                data-eval-id="{{ eval_hacer.id }}" data-subcomp-id="{{ eval_hacer.subcomponente.id }}"><i class="fas fa-edit"></i></button>
+                            <button class="text-red-500 hover:text-red-400 text-lg delete-subcomponente-btn"
+                                    onclick="confirmarEliminarSubcomponente('{{ eval_hacer.id }}', '{{ eval_hacer.nombre }}')"
+                                    data-eval-id="{{ eval_hacer.id }}" data-subcomp-id="{{ eval_hacer.subcomponente.id }}"><i class="fas fa-trash"></i></button>
+                        </div>
+                        </th>
+                    {% endfor %}
+                    <th class="border border-gray-300 text-yellow-600 font-semibold py-2 border-right-light" id="cabecera_prom_hacer">Prom.</th>
+
+                    <th class="border border-gray-300 py-2">Valor</th>
+                    <th class="border border-gray-300 text-yellow-600 py-2 border-right-light">Prom.</th>
+
+                    <th class="border border-gray-300 py-2">Valor</th>
+                    <th class="border border-gray-300 text-yellow-600 py-2">Prom.</th>
+                    </tr>
+                </thead>
+
+                <tbody class="bg-white text-center divide-y divide-gray-200" id="cuerpo_tabla_estudiantes">
+                    {% if estudiantes_data %}
+                    {% for estudiante in estudiantes_data %}
+                        <tr class="hover:bg-gray-50 transition duration-150" data-estudiante-id="{{ estudiante.id }}">
+                        <td class="border border-gray-300">{{ estudiante.nro }}</td>
+                        <td class="border border-gray-300 text-left font-medium text-blue-700">{{ estudiante.nombre_completo }}</td>
+
+                        {# Saber evaluations #}
+                        {% for eval_saber in evaluaciones_saber %}
+                            <td class="border border-gray-300">
+                            <input type="number" min="0" max="{{ eval_saber.ponderacion }}"
+                                    value="{{ estudiante|get_item:eval_saber.note_key|default_if_none:'' }}"
+                                    class="w-20 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-1 focus:ring-blue-500 note-input"
+                                    data-estudiante-id="{{ estudiante.id }}"
+                                    data-evaluacion-id="{{ eval_saber.id }}"
+                                    data-ponderacion="{{ eval_saber.ponderacion }}"
+                                    data-tipo-componente="Saber">
+                            </td>
+                        {% endfor %}
+                        <td class="border border-gray-300 font-semibold text-yellow-600 border-right-light prom_saber_cell">{{ estudiante.prom_saber|default_if_none:"N/A"|floatformat:1 }}</td>
+
+                        {# Hacer evaluations #}
+                        {% for eval_hacer in evaluaciones_hacer %}
+                            <td class="border border-gray-300">
+                            <input type="number" min="0" max="{{ eval_hacer.ponderacion }}"
+                                    value="{{ estudiante|get_item:eval_hacer.note_key|default_if_none:'' }}"
+                                    class="w-20 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-1 focus:ring-blue-500 note-input"
+                                    data-estudiante-id="{{ estudiante.id }}"
+                                    data-evaluacion-id="{{ eval_hacer.id }}"
+                                    data-ponderacion="{{ eval_hacer.ponderacion }}"
+                                    data-tipo-componente="Hacer">
+                            </td>
+                        {% endfor %}
+                        <td class="border border-gray-300 font-semibold text-yellow-600 border-right-light prom_hacer_cell">{{ estudiante.prom_hacer|default_if_none:"N/A"|floatformat:1 }}</td>
+
+                        {# Ser - Ahora con Asistencias dentro #}
+                        <td class="border border-gray-300">
+                            <div class="text-xs text-gray-500 mt-1">Asistencias: <span class="text-blue-600 font-semibold asistencia-count" data-estudiante-id="{{ estudiante.id }}">Cargando...</span></div>
+                        </td>
+                        <td class="border border-gray-300 font-semibold text-yellow-600">{{ estudiante.asistencia_nota_sobre_10|default_if_none:"N/A"|floatformat:1 }}</td>
+                        {# Decidir #}
+                        <td class="border border-gray-300">
+                            <input type="number" min="0" max="10" 
+                                    value="{{ estudiante.nota_decidir|default_if_none:'' }}"
+                                    class="w-20 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-1 focus:ring-blue-500 nota-decidir-input"
+                                    data-estudiante-id="{{ estudiante.id }}"
+                                    data-asignacion-id="{{ selected_asignacion.id }}"
+                                    data-trimestre-id="{{ selected_trimestre.id }}">
+                        </td>
+                        <td class="border border-gray-300 font-semibold text-yellow-600">{{ estudiante.nota_decidir|default_if_none:"N/A"|floatformat:1 }}</td>
+
+                        <td class="border border-gray-300 text-sm">
+                            <textarea class="w-full h-16 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500 observacion-input"
+                                    data-estudiante-id="{{ estudiante.id }}"
+                                    data-asignacion-id="{{ selected_asignacion.id }}"
+                                    data-trimestre-id="{{ selected_trimestre.id }}">{{ estudiante.observaciones }}</textarea>
+                        </td>
+                        <td class="border border-gray-300 text-purple-700">
+                            <input type="number" min="0" max="10" value="{{ estudiante.autoeval|default_if_none:'' }}"
+                                    class="w-20 bg-gray-50 text-gray-900 border border-gray-300 rounded px-2 py-1 text-center focus:outline-none focus:ring-1 focus:ring-blue-500 autoeval-input"
+                                    data-estudiante-id="{{ estudiante.id }}"
+                                    data-asignacion-id="{{ selected_asignacion.id }}"
+                                    data-trimestre-id="{{ selected_trimestre.id }}">
+                        </td>
+                        <td class="border border-gray-300 text-pink-600 font-bold">{{ estudiante.prom_trim|default_if_none:"N/A"|floatformat:1 }}</td>
+                        <td class="border border-gray-300 text-blue-700">{{ estudiante.rango|default_if_none:"N/A" }}</td>
+                        <td class="border border-gray-300 text-blue-700">{{ estudiante.situacion|default_if_none:"N/A" }}</td>
+                        </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="17" class="py-4 text-center text-gray-500">No hay estudiantes inscritos para esta asignación y trimestre.</td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+                </table>
+            </div>
+
+            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200">
+                <p>Unidad Educativa "República Árabe de Egipto" – Código RUE 80730087</p>
+                <p>Calle Santa Cruz N° 534, Ciudad de La Paz – Bolivia | Tel. (591) 2 2456124</p>
+                <p>&copy; {% now "Y" %} – Sistema de Control del Registro Pedagógico. Todos los derechos reservados.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div id="message-container" class="message-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-box {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+
+    <div id="profile-modal-overlay" class="fixed inset-0 bg-black bg-opacity-60 z-40 hidden" aria-hidden="true"></div>
+    <div id="profile-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-2xl rounded-lg shadow-xl z-50 hidden overflow-hidden">
+        <div class="flex justify-between items-center p-5 bg-gray-100 border-b border-gray-200">
+            <h3 class="text-2xl font-bold text-gray-800">Mis Datos Personales</h3>
+            <button id="close-profile-modal-btn" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+        </div>
+        <div class="p-6 max-h-[70vh] overflow-y-auto">
+            {% if docente %} <div class="space-y-6">
+                    <div>
+                        <h4 class="text-lg font-semibold text-indigo-700 border-b border-indigo-100 pb-2 mb-3">Información de Perfil</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                            <div><strong class="text-gray-600">Nombre:</strong> {{ docente.persona.nombres }}</div>
+                            <div><strong class="text-gray-600">Apellidos:</strong> {{ docente.persona.apellidos }}</div>
+                            <div><strong class="text-gray-600">Usuario:</strong> {{ docente.persona.usuario.username }}</div>
+                            <div><strong class="text-gray-600">Email:</strong> {{ docente.persona.usuario.email }}</div>
+                            <div><strong class="text-gray-600">CI:</strong> {{ docente.persona.ci|default:"No registrado" }}</div>
+                            <div><strong class="text-gray-600">Celular:</strong> {{ docente.persona.celular|default:"No registrado" }}</div>
+                            <div class="col-span-2"><strong class="text-gray-600">Dirección:</strong> {{ docente.persona.direccion|default:"No registrada" }}</div>
+                            <div class="col-span-2"><strong class="text-gray-600">Especialidad:</strong> {{ docente.especialidad|default:"No registrada" }}</div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-semibold text-indigo-700 border-b border-indigo-100 pb-2 mb-3">Mis Asignaciones (Cursos y Materias)</h4>
+                        {% if asignaciones_docente %}
+                            <ul class="list-disc list-inside space-y-1 text-sm text-gray-700">
+                                {% for asignacion in asignaciones_docente %}
+                                    <li>
+                                        <span class="font-semibold">{{ asignacion.materia.nombre }}</span> en 
+                                        <span>{{ asignacion.curso.get_full_name }}</span> 
+                                        (Año: {{ asignacion.anio_academico }})
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm text-gray-500">No tiene materias asignadas actualmente.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-gray-500">Datos personales no disponibles en esta página. Vuelva al <a href="{% url 'mi_admin:dashboard_docente' %}" class="text-blue-600 hover:underline">Inicio</a> para verlos.</p>
+            {% endif %}
+        </div>
+        <div class="p-4 bg-gray-50 border-t border-gray-200 text-right">
+             <button id="close-profile-modal-btn-bottom" class="px-5 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition">
+                Cerrar
+            </button>
+        </div>
+    </div>
+
+
+    <div id="modal_agregar_subcomponente" class="modal-overlay">
+        <div class="modal-content text-gray-900">
+          <h3 class="text-xl font-bold mb-4 text-blue-700">Añadir Nuevo Subcomponente de Evaluación</h3>
+          
+          <form id="form_agregar_subcomponente">
+            {% csrf_token %}
+            <input type="hidden" name="action_type" value="create_subcomponente">
+            <input type="hidden" name="asignacion_id" id="modal_asignacion_id" value="{{ selected_asignacion.id }}">
+            <input type="hidden" name="trimestre_id" id="modal_trimestre_id" value="{{ selected_trimestre.id }}">
+            <input type="hidden" name="tipo_componente_nombre" id="input_oculto_tipo_componente" value="">
+            <div class="mb-4">
+              <label for="input_nombre_subcomponente" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Subcomponente:</label>
+              <input type="text" id="input_nombre_subcomponente" name="nombre_subcomponente" required
+                     class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Componente:</label>
+              <input type="text" id="mostrar_tipo_componente" class="w-full px-3 py-2 bg-gray-200 border border-gray-300 rounded-md cursor-not-allowed text-gray-600" readonly>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Asignación:</label>
+              <input type="text" value="{{ selected_asignacion.curso.get_full_name }} ({{ selected_asignacion.materia.nombre }})"
+                     class="w-full px-3 py-2 bg-gray-200 border border-gray-300 rounded-md cursor-not-allowed text-gray-600" readonly>
+            </div>
+            <div class="mb-4">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Trimestre:</label>
+              <input type="text" value="{{ selected_trimestre.nombre }} ({{ selected_trimestre.gestion }})"
+                     class="w-full px-3 py-2 bg-gray-200 border border-gray-300 rounded-md cursor-not-allowed text-gray-600" readonly>
+            </div>
+            <div class="mb-4">
+                <label for="input_ponderacion_evaluacion" class="block text-sm font-medium text-gray-700 mb-1">Ponderación predeterminada para evaluaciones:</label>
+                <input type="number" id="input_ponderacion_evaluacion" name="ponderacion_evaluacion_unica" value="35" min="0"
+                       class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900"
+                       title="Puntos máximos para las evaluaciones creadas bajo este subcomponente.">
+                <p class="text-xs text-gray-500 mt-1">Este valor será la ponderación inicial para las evaluaciones de este subcomponente.</p>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+              <button type="button" id="btn_cancelar_subcomponente" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg shadow-md transition">
+                Cancelar
+              </button>
+              <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md transition">
+                Crear Subcomponente
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div id="modal_editar_subcomponente" class="modal-overlay hidden">
+        <div class="modal-content text-gray-900">
+          <h3 class="text-xl font-bold mb-4 text-blue-700">Editar Subcomponente de Evaluación</h3>
+          
+          <form id="form_editar_subcomponente">
+            {% csrf_token %}
+            <input type="hidden" name="subcomponente_id" id="input_editar_id_subcomponente">
+            <div class="mb-4">
+              <label for="input_editar_nombre_subcomponente" class="block text-sm font-medium text-gray-700 mb-1">Nombre del Subcomponente:</label>
+              <input type="text" id="input_editar_nombre_subcomponente" name="nombre_subcomponente" required
+                     class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-gray-900">
+            </div>
+            <div class="mb-4">
+              <label for="input_editar_ponderacion_evaluacion" class="block text-sm font-medium text-gray-700 mb-1">Ponderación predeterminada para evaluaciones:</label>
+              <input type="number" id="input_editar_ponderacion_evaluacion" name="ponderacion_evaluacion_unica" min="0"
+                     class="w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md text-gray-900"
+                     title="Puntos máximos para las evaluaciones creadas bajo este subcomponente.">
+              <p class="text-xs text-gray-500 mt-1">Este valor será la ponderación inicial para las evaluaciones de este subcomponente.</p>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+              <button type="button" id="btn_cancelar_editar_subcomponente" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg shadow-md transition">
+                Cancelar
+              </button>
+              <button type="submit" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg shadow-md transition">
+                Guardar Cambios
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    
+    <script>
+        // --- Funciones de Calificaciones (Globales) ---
+        function obtenerCookie(nombre) {
+          let valorCookie = null;
+          if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, nombre.length + 1) === (nombre + '=')) {
+                valorCookie = decodeURIComponent(cookie.substring(nombre.length + 1));
+                break;
+              }
+            }
+          }
+          return valorCookie;
+        }
+        const tokenCSRF = obtenerCookie('csrftoken');
+
+        function cargarAsistencias() {
+            const idAsignacion = document.getElementById('asignacion_select').value;
+            const idTrimestre = document.getElementById('trimestre_select').value;
+            if (!idAsignacion || !idTrimestre) {
+                console.warn("IDs no disponibles para cargar asistencias.");
+                return;
+            }
+            const url = "{% url 'mi_admin:obtener_conteo_asistencias_ajax' %}?asignacion_id=" + idAsignacion + "&trimestre_id=" + idTrimestre;
+            fetch(url)
+                .then(respuesta => {
+                    if (!respuesta.ok) throw new Error('Error al cargar asistencia: ' + respuesta.statusText);
+                    return respuesta.json();
+                })
+                .then(datos => {
+                    if (datos.estado === 'exito') {
+                        const datosAsistencia = datos.datos_asistencia; 
+                        document.querySelectorAll('.asistencia-count').forEach(span => {
+                            const idEstudiante = span.dataset.estudianteId;
+                            const conteo = datosAsistencia[idEstudiante] !== undefined ? datosAsistencia[idEstudiante] : 0;
+                            span.textContent = conteo;
+                        });
+                    } else {
+                        console.error('Error en respuesta de asistencia:', datos.mensaje);
+                    }
+                })
+                .catch(error => console.error('Fetch error:', error));
+        }
+
+        function asignarListenersNota(elementoInput) {
+            elementoInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); guardarNota(elementoInput); }});
+            elementoInput.addEventListener('blur', () => guardarNota(elementoInput));
+        }
+
+        async function guardarNota(elementoInput) {
+            const idEstudiante = elementoInput.dataset.estudianteId;
+            const idEvaluacion = elementoInput.dataset.evaluacionId;
+            let valor = elementoInput.value;
+            const maximo = parseFloat(elementoInput.max);
+            if (valor === "") { valor = null; } else { valor = parseFloat(valor); }
+            if (valor !== null && (isNaN(valor) || valor < 0 || valor > maximo)) {
+                alert(`Nota inválida. Debe estar entre 0 y ${maximo}.`);
+                elementoInput.focus();
+                return;
+            }
+            try {
+                const respuesta = await fetch("{% url 'mi_admin:guardar_nota' %}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest'},
+                    body: JSON.stringify({ estudiante_id: idEstudiante, evaluacion_id: idEvaluacion, valor: valor }),
+                });
+                if (!respuesta.ok) {
+                    const datosError = await respuesta.json();
+                    throw new Error(datosError.error || 'Error al guardar.');
+                }
+                const datos = await respuesta.json();
+                if (datos.status === 'success') { location.reload(); } else { alert('Error: ' + datos.message); }
+            } catch (error) { console.error('Error:', error); alert('Error: ' + error.message); }
+        }
+
+        function asignarListenersNotaDecidir(elementoInput) {
+            elementoInput.addEventListener('keypress', e => { if (e.key === 'Enter') { e.preventDefault(); guardarNotaDecidir(elementoInput); }});
+            elementoInput.addEventListener('blur', () => guardarNotaDecidir(elementoInput));
+        }
+
+        async function guardarNotaDecidir(elementoInput) {
+            const idEstudiante = elementoInput.dataset.estudianteId;
+            const idAsignacion = elementoInput.dataset.asignacionId;
+            const idTrimestre = elementoInput.dataset.trimestreId;
+            let valor = elementoInput.value;
+            const maximo = parseFloat(elementoInput.max);
+            if (valor === "") { valor = null; } else { valor = parseFloat(valor); }
+            if (valor !== null && (isNaN(valor) || valor < 0 || valor > maximo)) {
+                alert(`Nota inválida. Debe estar entre 0 y ${maximo}.`);
+                elementoInput.focus();
+                return;
+            }
+            try {
+                const respuesta = await fetch("{% url 'mi_admin:guardar_nota_decidir' %}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest'},
+                    body: JSON.stringify({ estudiante_id: idEstudiante, asignacion_id: idAsignacion, trimestre_id: idTrimestre, valor: valor }),
+                });
+                if (!respuesta.ok) {
+                    const datosError = await respuesta.json();
+                    throw new Error(datosError.error || 'Error al guardar.');
+                }
+                const datos = await respuesta.json();
+                if (datos.status === 'success') { location.reload(); } else { alert('Error: ' + datos.message); }
+            } catch (error) { console.error('Error:', error); alert('Error: ' + error.message); }
+        }
+
+        async function guardarObservacion(idEstudiante, idAsignacion, idTrimestre, observaciones) {
+            try {
+                const respuesta = await fetch('/guardar_observacion/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest'},
+                    body: JSON.stringify({ estudiante_id: idEstudiante, asignacion_id: idAsignacion, trimestre_id: idTrimestre, observaciones: observaciones })
+                });
+                const datos = await respuesta.json();
+                if (respuesta.ok) { alert(datos.message); location.reload(); } 
+                else { alert('Error: ' + (datos.message || 'Algo salió mal.')); }
+            } catch (error) { console.error('Error:', error); alert('Error de conexión.'); }
+        }
+
+        async function guardarAutoevaluacion(idEstudiante, idAsignacion, idTrimestre, autoeval) {
+            try {
+                const respuesta = await fetch('/guardar_autoevaluacion/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest'},
+                    body: JSON.stringify({ estudiante_id: idEstudiante, asignacion_id: idAsignacion, trimestre_id: idTrimestre, autoeval: autoeval })
+                });
+                const datos = await respuesta.json();
+                if (respuesta.ok) { alert(datos.message); location.reload(); } 
+                else { alert('Error: ' + (datos.message || 'Algo salió mal.')); }
+            } catch (error) { console.error('Error:', error); alert('Error de conexión.'); }
+        }
+
+        // --- Lógica del Modal (VARIABLES TRADUCIDAS) ---
+        const modalAgregarSubcomponente = document.getElementById('modal_agregar_subcomponente');
+        const btnCancelarSubcomponente = document.getElementById('btn_cancelar_subcomponente');
+        const formAgregarSubcomponente = document.getElementById('form_agregar_subcomponente');
+        const inputMostrarTipoComponente = document.getElementById('mostrar_tipo_componente');
+        const inputOcultoTipoComponente = document.getElementById('input_oculto_tipo_componente');
+        const inputNombreSubcomponente = document.getElementById('input_nombre_subcomponente');
+        const inputPonderacionEvaluacion = document.getElementById('input_ponderacion_evaluacion');
+        
+        document.addEventListener('click', function(e) {
+          const btnSaber = e.target.closest('#btn_agregar_eval_saber');
+          const btnHacer = e.target.closest('#btn_agregar_eval_hacer');
+          if (btnSaber) {
+            e.preventDefault();
+            inputOcultoTipoComponente.value = btnSaber.dataset.tipoComponente;
+            inputMostrarTipoComponente.value = btnSaber.dataset.tipoComponente;
+            inputNombreSubcomponente.value = '';
+            inputPonderacionEvaluacion.value = 35;
+            modalAgregarSubcomponente.classList.add('active');
+          }
+          if (btnHacer) {
+            e.preventDefault();
+            inputOcultoTipoComponente.value = btnHacer.dataset.tipoComponente;
+            inputMostrarTipoComponente.value = btnHacer.dataset.tipoComponente;
+            inputNombreSubcomponente.value = '';
+            inputPonderacionEvaluacion.value = 35;
+            modalAgregarSubcomponente.classList.add('active');
+          }
+        });
+
+        if(btnCancelarSubcomponente) btnCancelarSubcomponente.addEventListener('click', () => modalAgregarSubcomponente.classList.remove('active'));
+        if(modalAgregarSubcomponente) modalAgregarSubcomponente.addEventListener('click', e => { if (e.target === modalAgregarSubcomponente) modalAgregarSubcomponente.classList.remove('active'); });
+
+       if(formAgregarSubcomponente) formAgregarSubcomponente.addEventListener('submit', function(e) {
+          e.preventDefault(); // Este preventDefault es el único necesario
+          
+          // Opcional: Deshabilita el botón para evitar doble click
+          const submitButton = this.querySelector('button[type="submit"]');
+          if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = 'Guardando...';
+          }
+        
+          const datosFormulario = new FormData(this);
+          const idAsignacion = document.getElementById('asignacion_select').value;
+          const idTrimestre = document.getElementById('trimestre_select').value;
+          datosFormulario.set('asignacion_id', idAsignacion);
+          datosFormulario.set('trimestre_id', idTrimestre);
+        
+          fetch("{% url 'mi_admin:crear_subcomponente_evaluacion' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest' },
+            body: datosFormulario
+          })
+          .then(respuesta => {
+            if (!respuesta.ok) {
+                return respuesta.json().then(errorData => { 
+                    throw new Error(errorData.message || 'Error en el servidor'); 
+                });
+            }
+            return respuesta.json();
+          })
+          .then(datos => {
+            if (datos.status === 'success') {
+              alert(datos.message);
+            } else {
+              throw new Error(datos.message || 'Error en los datos enviados');
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error: ' + error.message);
+          })
+          .finally(() => {
+            modalAgregarSubcomponente.classList.remove('active');
+            location.reload();
+          });
+        });
+
+        // --- Lógica para Editar Subcomponente ---
+        const modalEditarSubcomponente = document.getElementById('modal_editar_subcomponente');
+        const btnCancelarEditarSubcomponente = document.getElementById('btn_cancelar_editar_subcomponente');
+        const formEditarSubcomponente = document.getElementById('form_editar_subcomponente');
+        const inputEditarIdSubcomponente = document.getElementById('input_editar_id_subcomponente');
+        const inputEditarNombreSubcomponente = document.getElementById('input_editar_nombre_subcomponente');
+        const inputEditarPonderacionEvaluacion = document.getElementById('input_editar_ponderacion_evaluacion');
+
+        function abrirModalEditarSubcomponente(idSubcomponente, nombre, ponderacion) {
+            if (inputEditarIdSubcomponente) inputEditarIdSubcomponente.value = idSubcomponente;
+            if (inputEditarNombreSubcomponente) inputEditarNombreSubcomponente.value = nombre;
+            if (inputEditarPonderacionEvaluacion) inputEditarPonderacionEvaluacion.value = ponderacion; 
+            if (modalEditarSubcomponente) {
+                modalEditarSubcomponente.classList.add('active');
+                modalEditarSubcomponente.classList.remove('hidden'); 
+            }
+        }
+
+        if (btnCancelarEditarSubcomponente && modalEditarSubcomponente) {
+            btnCancelarEditarSubcomponente.addEventListener('click', () => {
+                modalEditarSubcomponente.classList.remove('active');
+                modalEditarSubcomponente.classList.add('hidden'); 
+            });
+            modalEditarSubcomponente.addEventListener('click', e => {
+                if (e.target === modalEditarSubcomponente) {
+                    modalEditarSubcomponente.classList.remove('active');
+                    modalEditarSubcomponente.classList.add('hidden'); 
+                }
+            });
+        }
+        
+        if(formEditarSubcomponente) formEditarSubcomponente.addEventListener('submit', async function(e) {
+            e.preventDefault(); // Este preventDefault es el único necesario
+            const idSubcomponente = inputEditarIdSubcomponente.value;
+            const nuevoNombre = inputEditarNombreSubcomponente.value;
+            let nuevaPonderacion = parseFloat(inputEditarPonderacionEvaluacion.value);
+            if (!nuevoNombre || isNaN(nuevaPonderacion) || nuevaPonderacion < 0) {
+                alert('Valores inválidos.');
+                return;
+            }
+            try {
+                const respuesta = await fetch(`/subcomponente/${idSubcomponente}/editar_o_eliminar/`, {
+                    method: 'PATCH', 
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest'},
+                    body: JSON.stringify({ action_type: 'edit_subcomponente', nombre: nuevoNombre, ponderacion_evaluacion: nuevaPonderacion }),
+                });
+                const datos = await respuesta.json();
+                if (respuesta.ok) {
+                    alert(datos.message);
+                    modalEditarSubcomponente.classList.remove('active');
+                    modalEditarSubcomponente.classList.add('hidden');
+                    location.reload();
+                } else { alert('Error: ' + (datos.error || 'Algo salió mal.')); }
+            } catch (error) { console.error('Error:', error); alert('Error inesperado.'); }
+        });
+
+        async function confirmarEliminarSubcomponente(idEvaluacion, nombreEvaluacion) {
+            if (confirm(`¿Seguro de eliminar "${nombreEvaluacion}"? Se borrarán todas las notas asociadas.`)) {
+                try {
+                    const respuesta = await fetch(`/subcomponente/${idEvaluacion}/editar_o_eliminar/`, {
+                        method: 'DELETE', 
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': tokenCSRF, 'X-Requested-With': 'XMLHttpRequest'},
+                        body: JSON.stringify({ action_type: 'delete_evaluacion', evaluacion_id: idEvaluacion })
+                    });
+                    const datos = await respuesta.json();
+                    if (respuesta.ok) { alert(datos.message); location.reload(); } 
+                    else { alert('Error: ' + (datos.error || 'Algo salió mal.')); }
+                } catch (error) { console.error('Error:', error); alert('Error inesperado.'); }
+            }
+        }
+
+
+        // --- Lógica del Layout (Sidebar y Modal de Perfil) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Carga de datos de la página ---
+            cargarAsistencias();
+            if(document.getElementById('asignacion_select')) document.getElementById('asignacion_select').addEventListener('change', cargarAsistencias);
+            if(document.getElementById('trimestre_select')) document.getElementById('trimestre_select').addEventListener('change', cargarAsistencias);
+            document.querySelectorAll('.note-input').forEach(input => asignarListenersNota(input));
+            document.querySelectorAll('.nota-decidir-input').forEach(input => asignarListenersNotaDecidir(input));
+            document.querySelectorAll('.observacion-input').forEach(input => {
+                input.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault(); 
+                        guardarObservacion(this.dataset.estudianteId, this.dataset.asignacionId, this.dataset.trimestreId, this.value);
+                    }
+                });
+            });
+            document.querySelectorAll('.autoeval-input').forEach(input => {
+                input.addEventListener('change', function() { 
+                    let autoeval = this.value;
+                    if (autoeval === '') { autoeval = null; } 
+                    else {
+                        autoeval = parseFloat(autoeval);
+                        if (isNaN(autoeval) || autoeval < 0 || autoeval > 10) { 
+                            alert('La autoevaluación debe ser entre 0 y 10.');
+                            this.value = '';
+                            return;
+                        }
+                    }
+                    guardarAutoevaluacion(this.dataset.estudianteId, this.dataset.asignacionId, this.dataset.trimestreId, autoeval);
+                });
+            });
+
+
+            // --- Lógica de Mensajes ---
+            const messageBoxes = document.querySelectorAll('.message-box');
+            messageBoxes.forEach(function(box, index) {
+                setTimeout(() => {
+                    void box.offsetWidth;
+                    box.style.opacity = '1';
+                    box.style.transform = 'translateY(0)';
+                }, 100 * index);
+                setTimeout(() => {
+                    box.style.opacity = '0';
+                    box.style.transform = 'translateY(-20px)';
+                    box.addEventListener('transitionend', function() {
+                        box.remove();
+                    }, { once: true });
+                }, 4000 + (100 * index));
+            });
+
+            // --- Lógica del Sidebar ---
+            const sidebar = document.getElementById('sidebar');
+            const closeBtn = document.getElementById('sidebar-close-btn');
+            const openBtn  = document.getElementById('sidebar-open-btn');
+            const mainContent = document.getElementById('main-content'); 
+
+            function setSidebarClosed(closed) {
+                if (!sidebar || !openBtn || !mainContent || !closeBtn) return; // Seguridad
+                if (closed) {
+                    sidebar.classList.add('-translate-x-full');
+                    openBtn.classList.remove('hidden');
+                    if (mainContent) { 
+                        mainContent.classList.remove('ml-72');
+                        mainContent.classList.add('ml-0');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'false');
+                } else {
+                    sidebar.classList.remove('-translate-x-full');
+                    openBtn.classList.add('hidden');
+                    if (mainContent) {
+                        mainContent.classList.remove('ml-0');
+                        mainContent.classList.add('ml-72');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            const initiallyClosed = sidebar ? sidebar.classList.contains('-translate-x-full') : false;
+            setSidebarClosed(initiallyClosed);
+
+            function toggleSidebar() {
+                const isClosed = sidebar.classList.contains('-translate-x-full');
+                setSidebarClosed(!isClosed);
+            }
+
+            if(closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+            if(openBtn) openBtn.addEventListener('click', toggleSidebar);
+
+            document.addEventListener('click', (e) => {
+                if (sidebar && !sidebar.contains(e.target) && window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                    setSidebarClosed(true);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 1024) { // lg
+                    setSidebarClosed(false);
+                }
+            });
+
+            // --- Lógica para el Modal de Perfil ---
+            const modalOverlay = document.getElementById('profile-modal-overlay');
+            const modal = document.getElementById('profile-modal');
+            const openModalBtn = document.getElementById('open-profile-modal-btn');
+            const closeModalBtn = document.getElementById('close-profile-modal-btn');
+            const closeModalBtnBottom = document.getElementById('close-profile-modal-btn-bottom');
+
+            function openModal() {
+                if(modalOverlay) modalOverlay.classList.remove('hidden');
+                if(modal) modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                if(modalOverlay) modalOverlay.classList.add('hidden');
+                if(modal) modal.classList.add('hidden');
+            }
+
+            if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+            if (closeModalBtnBottom) closeModalBtnBottom.addEventListener('click', closeModal);
+            if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
+        });
+    </script>
+</body>
+</html>

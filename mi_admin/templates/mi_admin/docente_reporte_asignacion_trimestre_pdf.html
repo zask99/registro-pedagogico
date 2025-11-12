@@ -1,0 +1,238 @@
+{% load custom_filters %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Reporte de Notas - {{ asignacion.materia.nombre }} - {{ asignacion.curso.get_full_name }} - {{ trimestre.nombre }}</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 1cm;
+    }
+
+    body {
+      font-family: "Segoe UI", "Helvetica Neue", sans-serif;
+      margin: 10px 20px;
+      color: #2c3e50;
+      background-color: #fff;
+      font-size: 13px;
+    }
+
+    h1 {
+      font-size: 22px;
+      text-align: center;
+      margin-bottom: 12px;
+      color: #1a5276;
+      border-bottom: 2px solid #1a5276;
+      padding-bottom: 6px;
+    }
+
+    .info-compact {
+      display: flex;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 16px;
+      font-size: 12.5px;
+    }
+
+    .info-compact p {
+      margin: 2px 0;
+      line-height: 1.1;
+    }
+
+    h2 {
+      font-size: 16px;
+      color: #117864;
+      margin-bottom: 8px;
+      border-left: 5px solid #117864;
+      padding-left: 10px;
+    }
+
+    .section-box {
+      padding: 10px 15px;
+      border: 1px solid #dcdcdc;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      background-color: #f8f9fa;
+    }
+
+    table {
+      border-collapse: collapse;
+      table-layout: auto;
+      margin-top: 8px;
+      font-size: 11px;
+      width: 100%;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 2px 3px;
+      text-align: center;
+      vertical-align: middle;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100px;
+      font-size: 11px;
+    }
+
+    th {
+      background-color: #eaf2f8;
+      color: #1a5276;
+      font-weight: bold;
+    }
+
+    .rotated-header-cell {
+      padding: 0;
+      vertical-align: bottom;
+    }
+
+    .vertical-text {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 9px;
+      line-height: 1.1;
+      padding: 2px;
+    }
+
+    .component-total {
+      background-color: #f2f4f6;
+      font-weight: bold;
+    }
+
+    .highlight {
+      font-weight: bold;
+      background-color: #d4efdf;
+      color: #145a32;
+    }
+
+    .total-row td {
+      background-color: #d6eaf8;
+      font-weight: bold;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 16px;
+      font-style: italic;
+      color: #7f8c8d;
+    }
+
+    .reprobado {
+      color: red;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 11px;
+      color: #7f8c8d;
+      border-top: 1px solid #ccc;
+      padding-top: 8px;
+    }
+
+    td:first-child {
+      text-align: left;
+      padding-left: 6px;
+      max-width: 150px;
+    }
+
+    /* Específicos para evitar desbordes */
+    td.ci, th.ci {
+      max-width: 70px;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    td.situacion, th.situacion {
+      max-width: 80px;
+      white-space: normal;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Reporte de Notas</h1>
+
+  <div class="info-compact">
+    <div>
+      <p><strong>Materia:</strong> {{ asignacion.materia.nombre }}</p>
+      <p><strong>Curso:</strong> {{ asignacion.curso.get_full_name }}</p>
+      <p><strong>Trimestre:</strong> {{ trimestre.nombre }} ({{ trimestre.fecha_inicio|date:"d/m/Y" }} al {{ trimestre.fecha_fin|date:"d/m/Y" }})</p>
+    </div>
+    <div>
+      <p><strong>Docente:</strong> {{ asignacion.docente.persona.nombres }} {{ asignacion.docente.persona.apellidos }}</p>
+      <p><strong>Año Académico:</strong> {{ asignacion.anio_academico }}</p>
+      <p><strong>Fecha de Generación:</strong> {{ fecha_generacion_reporte|date:"d/m/Y H:i" }}</p>
+    </div>
+  </div>
+
+  <div class="section-box">
+    <h2>Notas de los Estudiantes</h2>
+
+    {% if estudiantes_con_notas %}
+      <table>
+        <thead>
+          <tr>
+            <th rowspan="2">Estudiante</th>
+            <th rowspan="2" class="ci">CI</th>
+            <th rowspan="2">SER<br>(Máx: {{ PUNTAJE_MAXIMO_COMPONENTE.SER|stringformat:".2f" }})</th>
+            <th colspan="{{ evaluaciones_saber|length|add:1 }}">SABER</th>
+            <th colspan="{{ evaluaciones_hacer|length|add:1 }}">HACER</th>
+            <th rowspan="2">DECIDIR<br>(Máx: {{ PUNTAJE_MAXIMO_COMPONENTE.DECIDIR|stringformat:".2f" }})</th>
+            <th rowspan="2">Autoeval.</th>
+            <th rowspan="2">Rango</th>
+            <th rowspan="2">Nota Final<br>Trimestre</th>
+            <th rowspan="2" class="situacion">Situación</th>
+          </tr>
+          <tr>
+            {% for evaluacion in evaluaciones_saber %}
+              <th class="rotated-header-cell"><div class="vertical-text">{{ evaluacion.nombre }} ({{ evaluacion.ponderacion|stringformat:".2f" }})</div></th>
+            {% endfor %}
+            <th class="component-total">TOTAL</th>
+            {% for evaluacion in evaluaciones_hacer %}
+              <th class="rotated-header-cell"><div class="vertical-text">{{ evaluacion.nombre }} ({{ evaluacion.ponderacion|stringformat:".2f" }})</div></th>
+            {% endfor %}
+            <th class="component-total">TOTAL</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in estudiantes_con_notas %}
+            <tr>
+              <td>{{ item.estudiante.persona.nombres }} {{ item.estudiante.persona.apellidos }}</td>
+              <td class="ci">{{ item.estudiante.persona.ci|default:"N/A" }}</td>
+              <td>{{ item.nota_ser|default:"-"|stringformat:".2f" }}</td>
+
+              {% for evaluacion in evaluaciones_saber %}
+                <td>{{ item.notas_evaluaciones|get_item:evaluacion.id|default:"-"|stringformat:".2f" }}</td>
+              {% endfor %}
+              <td class="component-total">{{ item.nota_saber|default:"-"|stringformat:".2f" }}</td>
+
+              {% for evaluacion in evaluaciones_hacer %}
+                <td>{{ item.notas_evaluaciones|get_item:evaluacion.id|default:"-"|stringformat:".2f" }}</td>
+              {% endfor %}
+              <td class="component-total">{{ item.nota_hacer|default:"-"|stringformat:".2f" }}</td>
+
+              <td>{{ item.nota_decidir|default:"-"|stringformat:".2f" }}</td>
+              <td>{{ item.autoeval|default:"-"|stringformat:".2f" }}</td>
+              <td>{{ item.rango }}</td>
+              <td class="highlight">{{ item.nota_final_trimestre|default:"-"|stringformat:".2f" }}</td>
+              <td class="situacion {% if item.situacion == 'Reprobado' %}reprobado{% endif %}">
+                {{ item.situacion|default:"-" }}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="no-data">No hay estudiantes inscritos o notas registradas para este trimestre.</p>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    <p>Reporte generado automáticamente por el sistema de Registro Pedagógico - Unidad Educativa</p>
+  </div>
+
+</body>
+</html>

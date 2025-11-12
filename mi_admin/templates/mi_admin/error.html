@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error de Acceso</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-900 dark:bg-gray-900 dark:text-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 p-8 rounded-lg shadow-xl max-w-md w-full text-center border-t-4 border-red-600 dark:border-red-700">
+        <h1 class="text-3xl font-extrabold text-red-600 dark:text-red-500 mb-4">¡Error!</h1>
+        <p class="text-lg text-gray-700 dark:text-gray-300 mb-6">
+            {{ message }}
+        </p>
+        {% if back_url %}
+            <a href="{{ back_url }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition duration-300 ease-in-out transform hover:scale-105">
+                Volver
+            </a>
+        {% endif %}
+    </div>
+</body>
+</html>

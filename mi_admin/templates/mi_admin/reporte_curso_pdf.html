@@ -1,0 +1,197 @@
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Curso - {{ curso.nombre }}</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            margin: 40px;
+            color: #2c3e50;
+            background-color: #ffffff;
+        }
+
+        h1, h2, h3 {
+            color: #2c3e50;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            font-size: 26px;
+            text-align: center;
+            text-transform: uppercase;
+            border-bottom: 2px solid #34495e;
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        h2 {
+            font-size: 20px;
+            color: #1a5276;
+            margin-top: 25px;
+            border-left: 5px solid #3498db;
+            padding-left: 10px;
+        }
+
+        h3 {
+            font-size: 18px;
+            margin-top: 30px;
+            color: #7d3c98;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            margin-bottom: 25px;
+            font-size: 12px;
+        }
+
+        th, td {
+            border: 1px solid #bdc3c7;
+            padding: 8px 10px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            background-color: #ecf0f1;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header p {
+            margin: 4px 0;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .trimestre-section {
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #d6eaf8;
+            border-radius: 6px;
+            margin-bottom: 30px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 11px;
+            color: #888;
+            border-top: 1px solid #ccc;
+            padding-top: 15px;
+        }
+
+        .no-data {
+            color: #7f8c8d;
+            font-style: italic;
+            padding: 10px;
+        }
+
+        .total-row td {
+            background-color: #d5f5e3;
+            font-weight: bold;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .highlight {
+            font-weight: bold;
+            color: #2e86c1;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Reporte del Curso: {{ curso.nombre }}</h1>
+        <p>Año Académico: <strong>{{ anio_academico }}</strong></p>
+        <p>Fecha de Generación: {{ "now"|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    {% if datos_por_trimestre %}
+        {% for trimestre_data in datos_por_trimestre %}
+            <div class="trimestre-section">
+                <h2>{{ trimestre_data.trimestre.nombre }}</h2>
+                <p><strong>Periodo:</strong> {{ trimestre_data.trimestre.fecha_inicio|date:"d/m/Y" }} al {{ trimestre_data.trimestre.fecha_fin|date:"d/m/Y" }}</p>
+
+                {% if trimestre_data.estudiantes_con_notas %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Estudiante</th>
+                                <th>CI</th>
+                                <th>SABER<br>(Máx: {{ PUNTAJE_MAXIMO_COMPONENTE.SABER }})</th>
+                                <th>HACER<br>(Máx: {{ PUNTAJE_MAXIMO_COMPONENTE.HACER }})</th>
+                                <th>SER<br>(Máx: {{ PUNTAJE_MAXIMO_COMPONENTE.SER }})</th>
+                                <th>DECIDIR<br>(Máx: {{ PUNTAJE_MAXIMO_COMPONENTE.DECIDIR }})</th>
+                                <th>Nota Final<br>Trimestre</th>
+                                <th>Rango</th>
+                                <th>Asistencia<br>(%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for estudiante_nota_data in trimestre_data.estudiantes_con_notas %}
+                                <tr>
+                                    <td>{{ estudiante_nota_data.estudiante.nombres }} {{ estudiante_nota_data.estudiante.apellidos }}</td>
+                                    <td>{{ estudiante_nota_data.estudiante.ci|default:"N/A" }}</td>
+                                    <td>{{ estudiante_nota_data.nota_saber|default:"-" }}</td>
+                                    <td>{{ estudiante_nota_data.nota_hacer|default:"-" }}</td>
+                                    <td>{{ estudiante_nota_data.nota_ser|default:"-" }}</td>
+                                    <td>{{ estudiante_nota_data.nota_decidir|default:"-" }}</td>
+                                    <td class="highlight">{{ estudiante_nota_data.nota_final_trimestre|default:"-" }}</td>
+                                    <td>{{ estudiante_nota_data.rango|default:"-" }}</td>
+                                    <td>{{ estudiante_nota_data.porcentaje_asistencia_trimestral|default:"-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <p class="no-data">No hay notas registradas para este trimestre.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p class="text-center"><em>No hay trimestres disponibles o estudiantes inscritos en este curso para el año académico actual.</em></p>
+    {% endif %}
+
+    <h3>Resumen de Asistencia Anual por Estudiante</h3>
+    {% if estudiantes_inscritos %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Estudiante</th>
+                    <th>CI</th>
+                    <th>Correo</th>
+                    <th>Asistencia Anual (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for estudiante in estudiantes_inscritos %}
+                    <tr>
+                        <td>{{ estudiante.nombres }} {{ estudiante.apellidos }}</td>
+                        <td>{{ estudiante.ci|default:"N/A" }}</td>
+                        <td>{{ estudiante.correo|default:"N/A" }}</td>
+                        <td>{{ porcentajes_asistencia_anual_estudiantes|get_item:estudiante.id|default:"0.00%" }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="no-data">No hay estudiantes inscritos para mostrar el resumen de asistencia anual.</p>
+    {% endif %}
+
+    <div class="footer">
+        <p>Reporte generado automáticamente por el sistema de Registro Pedagógico - Unidad Educativa</p>
+    </div>
+</body>
+</html>

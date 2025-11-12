@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle Calificación - Registro Pedagógico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .animate-fade-in { animation: fadeIn 1s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .table-auto { width: 100%; border-collapse: collapse; }
+        .table-auto th, .table-auto td { padding: 12px 15px; border-bottom: 1px solid #4a5568; text-align: left; }
+        .table-auto th { background-color: #2d3748; color: #cbd5e0; font-weight: bold; text-transform: uppercase; font-size: 0.85rem; }
+        .table-auto tbody tr:hover { background-color: #242b38; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen font-sans">
+
+    <header class="bg-purple-800 text-white py-5 px-6 shadow-lg flex justify-between items-center">
+        <h1 class="text-2xl font-extrabold tracking-wide">📚 Registro Pedagógico - Estudiante</h1>
+        <nav>
+            <ul class="flex space-x-6 text-sm font-medium">
+                <li><a href="{% url 'mi_admin:est_main_dashboard' %}" class="hover:text-purple-300 transition">🏠 Inicio</a></li>
+                <li><a href="{% url 'mi_admin:est_listar_mis_cursos_estudiante' %}" class="hover:text-purple-300 transition">📖 Mis Cursos</a></li>
+                <li><a href="{% url 'mi_admin:est_ver_mis_calificaciones' %}" class="hover:text-purple-300 transition"> grades Mis Calificaciones</a></li>
+                <li><a href="{% url 'mi_admin:est_ver_mi_asistencia' %}" class="hover:text-purple-300 transition">✔️ Mi Asistencia</a></li>
+            </ul>
+        </nav>
+        <div class="flex items-center gap-4 text-sm">
+            <span class="italic text-purple-200">👋 Hola, <strong>{{ user.username }}</strong> (Estudiante)</span>
+            <form action="{% url 'mi_admin:logout' %}" method="post" class="inline">
+                {% csrf_token %}
+                <button type="submit" class="bg-red-600 hover:bg-red-700 text-white px-4 py-1 rounded-lg font-semibold shadow transition">
+                    🔒 Cerrar Sesión
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-8">
+        <h2 class="text-4xl font-bold text-center text-purple-400 drop-shadow mb-10 animate-fade-in">📋 Detalle de Calificación</h2>
+
+        {% if messages %}
+            <div class="mb-6">
+                {% for message in messages %}
+                    <div class="px-4 py-3 mb-2 rounded-lg text-sm font-semibold
+                        {% if message.tags == 'success' %} bg-green-600 text-white
+                        {% elif message.tags == 'error' %} bg-red-600 text-white
+                        {% elif message.tags == 'warning' %} bg-yellow-500 text-black
+                        {% else %} bg-purple-600 text-white
+                        {% endif %}
+                    ">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% if resumen %}
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-md mb-8">
+                <h3 class="text-2xl font-bold text-purple-300 mb-4">Resumen del Trimestre</h3>
+                <p class="text-gray-300 mb-2"><strong>Materia:</strong> {{ resumen.asignacion.materia.nombre }}</p>
+                <p class="text-gray-300 mb-2"><strong>Curso:</strong> {{ resumen.asignacion.curso.grado }} '{{ resumen.asignacion.curso.paralelo }}' - {{ resumen.asignacion.curso.get_niveles_display }}</p>
+                <p class="text-gray-300 mb-2"><strong>Trimestre:</strong> {{ resumen.trimestre.nombre }} ({{ resumen.trimestre.gestion }})</p>
+                <p class="text-gray-300 mb-2"><strong>Docente:</strong> {{ resumen.asignacion.docente.persona.nombres }} {{ resumen.asignacion.docente.persona.apellidos }}</p>
+                <p class="text-gray-300 mb-2"><strong>Nota Final:</strong> <span class="font-bold text-purple-300">{{ resumen.nota_final_trimestre|default:"-" }}</span></p>
+                <p class="text-gray-300 mb-2"><strong>Saber:</strong> {{ resumen.nota_saber|default:"-" }}</p>
+                <p class="text-gray-300 mb-2"><strong>Hacer:</strong> {{ resumen.nota_hacer|default:"-" }}</p>
+                <p class="text-gray-300 mb-2"><strong>Ser:</strong> {{ resumen.nota_ser|default:"-" }}</p>
+                <p class="text-gray-300 mb-2"><strong>Decidir:</strong> {{ resumen.nota_decidir|default:"-" }}</p>
+                <p class="text-gray-300 mb-2"><strong>Observaciones:</strong> {{ resumen.observaciones_docente|default:"Ninguna" }}</p>
+            </div>
+
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-md">
+                <h3 class="text-2xl font-bold text-purple-300 mb-4">Notas Individuales</h3>
+                {% if notas_detalladas %}
+                    <div class="overflow-x-auto">
+                        <table class="table-auto text-gray-200">
+                            <thead>
+                                <tr>
+                                    <th>Tipo Componente</th>
+                                    <th>Subcomponente</th>
+                                    <th>Evaluación</th>
+                                    <th>Fecha</th>
+                                    <th>Nota Obtenida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for nota in notas_detalladas %}
+                                    <tr>
+                                        <td>{{ nota.evaluacion.subcomponente.tipo_componente.nombre }}</td>
+                                        <td>{{ nota.evaluacion.subcomponente.nombre }}</td>
+                                        <td>{{ nota.evaluacion.nombre_evaluacion }}</td>
+                                        <td>{{ nota.evaluacion.fecha_evaluacion|date:"d M Y" }}</td>
+                                        <td class="font-bold">{{ nota.nota_obtenida|default:"-" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-gray-300">No hay notas detalladas para este resumen trimestral.</p>
+                {% endif %}
+            </div>
+            
+            <div class="mt-8 text-center">
+                <a href="{% url 'mi_admin:est_ver_mis_calificaciones' %}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition">
+                    ← Volver a Mis Calificaciones
+                </a>
+            </div>
+
+        {% else %}
+            <p class="text-gray-300 text-center">No se encontró el resumen de calificación.</p>
+            <div class="mt-8 text-center">
+                <a href="{% url 'mi_admin:est_ver_mis_calificaciones' %}" class="inline-block bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg shadow transition">
+                    ← Volver a Mis Calificaciones
+                </a>
+            </div>
+        {% endif %}
+    </main>
+
+    <footer class="bg-gray-900 text-center py-5 mt-16 text-sm text-gray-400 border-t border-gray-700">
+        &copy; 2025 Registro Pedagógico. Todos los derechos reservados.
+    </footer>
+
+</body>
+</html>

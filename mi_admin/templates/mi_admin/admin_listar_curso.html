@@ -1,0 +1,405 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Cursos - Registro Pedagógico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos personalizados para los mensajes de Django (del dashboard) */
+        .message-container {
+            position: fixed;
+            top: 1.5rem;
+            right: 1.5rem;
+            z-index: 1050; /* z-index más alto que el modal overlay */
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .message-box {
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .message-box.success { background-color: #22c55e; }
+        .message-box.error   { background-color: #ef4444; }
+        .message-box.warning { background-color: #f59e0b; }
+        .message-box.info    { background-color: #3b82f6; }
+        .message-box.debug   { background-color: #6b7280; }
+
+        /* Estilos para el modal (adaptados al modo claro) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6); /* Overlay más oscuro */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #ffffff; /* Fondo blanco */
+            color: #374151; /* texto-gray-700 */
+            border-radius: 0.75rem; /* rounded-xl */
+            padding: 2rem;
+            width: 90%;
+            max-width: 56rem; /* max-w-5xl */
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        .modal-overlay.open .modal-content {
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside id="sidebar" class="w-72 bg-gray-800 text-white flex flex-col fixed h-full shadow-lg z-20 transition-transform duration-300 ease-in-out">
+            
+            <div class="relative p-4 pt-6 border-b border-gray-700"> 
+                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="absolute top-2 right-2 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
+                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                <div class="flex justify-center mb-4 mt-6">
+                    <img src="{% static 'img/img.jpg' %}" alt="Logo de la Institución" class="h-32 w-32 rounded-full border-4 border-gray-600 object-cover">
+                </div>
+                <h2 class="text-xl font-semibold text-center text-gray-100 uppercase mb-4">
+                    UNIDAD EDUCATIVA<br>REPÚBLICA ÁRABE DE EGIPTO
+                </h2>
+            </div>
+            <nav class="flex-1 py-6 px-4 space-y-3 overflow-y-auto">
+                <a href="/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+                    <span>Inicio</span>
+                </a>
+                <a href="/registrar-persona/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A1.875 1.875 0 0 1 14.25 21h-4.5A1.875 1.875 0 0 1 3 19.235Z"/></svg>
+                    <span>Registrar Usuario</span>
+                </a>
+                <a href="/cursos/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-white bg-gray-700 transition"> <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                    <span>Cursos</span>
+                </a>
+                <a href="/materias/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/></svg>
+                    <span>Materias</span>
+                </a>
+                <a href="/trimestres/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
+                    <span>Trimestres</span>
+                </a>
+            </nav>
+
+            <div class="p-4 mt-auto border-t border-gray-700">
+                <form action="{% url 'logout' %}" method="post" class="inline w-full">
+                    {% csrf_token %} <button type="submit" class="flex items-center justify-center space-x-3 w-full px-3 py-3 rounded-md font-medium text-white bg-red-600 hover:bg-red-700 transition">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/></svg>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <button id="sidebar-open-btn" aria-label="Abrir menú"
+                class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
+            <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none"
+                 viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+        </button>
+
+        
+        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out">
+            <div class="container mx-auto p-10">
+                
+                <header class="mb-10 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
+                    <div>
+                        <h2 class="text-5xl font-extrabold text-gray-800 drop-shadow-sm">🎓 Gestión de Cursos</h2>
+                        <p class="text-xl text-gray-500 mt-2">Gestiona los cursos y sus asignaciones de materias.</p>
+                    </div>
+                    <a href="{% url 'mi_admin:admin_anadir_curso' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-semibold shadow-lg transition flex items-center justify-center space-x-2 transform hover:-translate-y-0.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Añadir Nuevo Curso</span>
+                    </a>
+                </header>
+
+                {% if cursos %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {% for curso in cursos %}
+                            <div class="bg-white p-8 rounded-xl shadow-lg hover:shadow-2xl transition-shadow transform hover:-translate-y-1">
+                                <h3 class="text-2xl font-bold text-indigo-700 mb-2">{{ curso }}</h3>
+                                <p class="text-gray-600 mb-5 text-base">
+                                    Nivel: <span class="font-medium">{{ curso.get_niveles_display }}</span><br>
+                                    Grado: <span class="font-medium">{{ curso.grado }}</span> |
+                                    Paralelo: <span class="font-medium">{{ curso.paralelo }}</span>
+                                </p>
+                                <div class="space-y-3 mt-4 border-t border-gray-100 pt-4">
+                                    <p>
+                                        <a href="{% url 'mi_admin:admin_listar_estudiantes' curso.id %}" 
+                                           class="font-medium text-lg text-indigo-600 hover:underline flex items-center space-x-2">
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372m-10.5 0a9.38 9.38 0 0 1 2.625.372M12 11.25a3.375 3.375 0 0 1 3.375 3.375v6.75a3.375 3.375 0 0 1-3.375 3.375h-1.5a3.375 3.375 0 0 1-3.375-3.375v-6.75a3.375 3.375 0 0 1 3.375-3.375h1.5Z" /></svg>
+                                            <span>Ver Estudiantes</span>
+                                        </a>
+                                    </p>
+                                    <p>
+                                        <button type="button"
+                                           class="open-assignments-modal font-medium text-lg text-indigo-600 hover:underline flex items-center space-x-2"
+                                           data-curso-id="{{ curso.id }}"
+                                           data-curso-nombre="{{ curso }}">
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                                            <span>Ver Asignaciones</span>
+                                        </button>
+                                    </p>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="bg-white p-10 rounded-xl shadow-lg text-center">
+                        <p class="text-gray-500 text-lg">🚫 No hay cursos registrados en el sistema.</p>
+                        <p class="mt-2 text-gray-400">Puedes empezar añadiendo uno con el botón de "Añadir Nuevo Curso".</p>
+                    </div>
+                {% endif %}
+
+            </div>
+
+            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200">
+                <p>Unidad Educativa "República Árabe de Egipto" – Código RUE 80730087</p>
+                <p>Calle Santa Cruz N° 534, Ciudad de La Paz – Bolivia | Tel. (591) 2 2456124</p>
+                <p>&copy; {% now "Y" %} – Sistema de Control del Registro Pedagógico. Todos los derechos reservados.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div id="message-container" class="message-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-box {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <div id="assignmentModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-6 border-b border-gray-200 pb-4">
+                <h3 id="modalTitle" class="text-3xl font-bold text-indigo-700">Asignaciones para: </h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-4xl font-light leading-none">&times;</button>
+            </div>
+
+            <div id="assignmentsTableContainer" class="overflow-x-auto text-gray-600">
+                <p class="text-center">Cargando asignaciones...</p>
+            </div>
+
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // --- Lógica de Mensajes (del dashboard) ---
+            const messageBoxes = document.querySelectorAll('.message-box');
+            messageBoxes.forEach(function(box, index) {
+                setTimeout(() => {
+                    void box.offsetWidth;
+                    box.style.opacity = '1';
+                    box.style.transform = 'translateY(0)';
+                }, 100 * index);
+                setTimeout(() => {
+                    box.style.opacity = '0';
+                    box.style.transform = 'translateY(-20px)';
+                    box.addEventListener('transitionend', function() {
+                        box.remove();
+                    }, { once: true });
+                }, 4000 + (100 * index));
+            });
+
+            // --- Lógica del Sidebar (del dashboard) ---
+            const sidebar = document.getElementById('sidebar');
+            const closeBtn = document.getElementById('sidebar-close-btn');
+            const openBtn  = document.getElementById('sidebar-open-btn');
+            const mainContent = document.getElementById('main-content'); 
+
+            function setSidebarClosed(closed) {
+                if (!sidebar || !openBtn || !mainContent || !closeBtn) return;
+                if (closed) {
+                    sidebar.classList.add('-translate-x-full');
+                    openBtn.classList.remove('hidden');
+                    if (mainContent) { 
+                        mainContent.classList.remove('ml-72');
+                        mainContent.classList.add('ml-0');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'false');
+                } else {
+                    sidebar.classList.remove('-translate-x-full');
+                    openBtn.classList.add('hidden');
+                    if (mainContent) {
+                        mainContent.classList.remove('ml-0');
+                        mainContent.classList.add('ml-72');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            const initiallyClosed = sidebar ? sidebar.classList.contains('-translate-x-full') : false;
+            setSidebarClosed(initiallyClosed);
+
+            function toggleSidebar() {
+                const isClosed = sidebar.classList.contains('-translate-x-full');
+                setSidebarClosed(!isClosed);
+            }
+
+            if(closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+            if(openBtn) openBtn.addEventListener('click', toggleSidebar);
+
+            document.addEventListener('click', (e) => {
+                if (sidebar && !sidebar.contains(e.target) && window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                    setSidebarClosed(true);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 1024) {
+                    setSidebarClosed(false);
+                }
+            });
+
+            
+            // --- Lógica del Modal (de admin_listar_curso.html) ---
+            const openModalBtns = document.querySelectorAll('.open-assignments-modal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const assignmentModal = document.getElementById('assignmentModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const assignmentsTableContainer = document.getElementById('assignmentsTableContainer');
+
+            if (assignmentModal) { // Asegurarse de que el modal exista
+                openModalBtns.forEach(button => {
+                    button.addEventListener('click', async (event) => {
+                        // Usar currentTarget para asegurar que obtenemos el botón
+                        const targetButton = event.currentTarget; 
+                        const cursoId = targetButton.dataset.cursoId;
+                        const cursoNombre = targetButton.dataset.cursoNombre;
+
+                        modalTitle.textContent = `Asignaciones para: ${cursoNombre}`;
+                        assignmentsTableContainer.innerHTML = '<p class="text-center text-gray-500">Cargando asignaciones...</p>';
+                        assignmentModal.classList.add('open');
+
+                        try {
+                            // URL Dinámica de Django
+                            const url = "{% url 'mi_admin:api_get_course_assignments' 0 %}".replace('/0/', `/${cursoId}/`);
+                            const response = await fetch(url);
+                            
+                            if (!response.ok) {
+                                const errorText = await response.text();
+                                throw new Error(`Error ${response.status}: ${errorText}`);
+                            }
+                            
+                            const data = await response.json();
+                            // ¡Llamar a la función de renderizado MODIFICADA!
+                            renderAssignmentsTable_light(data.asignaciones, assignmentsTableContainer, cursoId);
+
+                        } catch (error) {
+                            console.error('Error en fetch:', error);
+                            assignmentsTableContainer.innerHTML = '<p class="text-center text-red-600 font-medium">Error al cargar las asignaciones. Detalles: ' + error.message + '</p>';
+                        }
+                    });
+                });
+
+                closeModalBtn.addEventListener('click', () => {
+                    assignmentModal.classList.remove('open');
+                });
+
+                assignmentModal.addEventListener('click', (e) => {
+                    if (e.target === assignmentModal) {
+                        assignmentModal.classList.remove('open');
+                    }
+                });
+            }
+
+            // --- Función de Renderizado (MODIFICADA PARA MODO CLARO) ---
+            function renderAssignmentsTable_light(assignments, container, cursoId) {
+                // Botón "Asignar Materia" con estilo verde (éxito)
+                let addAssignmentButton = `
+                   <a href="{% url 'mi_admin:admin_assign_materia_to_curso' %}?curso_id=${cursoId}"
+                       class="mb-6 inline-flex items-center px-5 py-2.5 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transform hover:-translate-y-0.5 transition">
+                       <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd" />
+                       </svg>
+                       Asignar Materia a este Curso
+                    </a>
+                    <hr class="border-gray-200 mb-6">
+                `;
+
+                if (assignments.length === 0) {
+                    container.innerHTML = addAssignmentButton + '<p class="text-center text-gray-500 py-4">No hay asignaciones para este curso. Puedes asignar una materia.</p>';
+                    return;
+                }
+
+                // Tabla con estilo claro
+                let tableHtml = `
+                    ${addAssignmentButton}
+                    <div class="overflow-hidden border border-gray-200 rounded-lg shadow-sm">
+                        <table class="min-w-full bg-white">
+                            <thead class="bg-gray-100">
+                                <tr class="text-left text-gray-600 uppercase text-sm leading-normal">
+                                    <th class="py-3 px-6 text-left">Materia</th>
+                                    <th class="py-3 px-6 text-left">Docente</th>
+                                    <th class="py-3 px-6 text-center">Año Académico</th>
+                                    <th class="py-3 px-6 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-700 text-sm font-light">
+                `;
+
+                assignments.forEach(assign => {
+                    tableHtml += `
+                        <tr class="border-b border-gray-200 hover:bg-gray-50">
+                            <td class="py-4 px-6 text-left whitespace-nowrap font-medium">${assign.materia_nombre}</td>
+                            <td class="py-4 px-6 text-left">
+                                ${assign.docente_nombre ? assign.docente_nombre : '<span class="text-red-600 font-semibold px-2 py-1 bg-red-100 rounded-md">Sin Asignar</span>'}
+                            </td>
+                            <td class="py-4 px-6 text-center">${assign.anio_academico}</td>
+                            <td class="py-4 px-6 text-center space-x-4">
+                                <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium">Editar</a>
+                                <a href="#" class="text-red-600 hover:text-red-800 font-medium">Eliminar</a>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+                `;
+                container.innerHTML = tableHtml;
+            }
+
+        }); // Fin de DOMContentLoaded
+    </script>
+</body>
+</html>
