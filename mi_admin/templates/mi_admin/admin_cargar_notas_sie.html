@@ -7,12 +7,12 @@
     <title>Cargar Notas al SIE - Registro Pedagógico</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Estilos personalizados para los mensajes de Django */
+        /* --- Estilos Unificados (Mensajes y Spinners) --- */
         .message-container {
             position: fixed;
             top: 1.5rem;
             right: 1.5rem;
-            z-index: 50;
+            z-index: 100;
             display: flex;
             flex-direction: column;
             gap: 0.75rem;
@@ -22,183 +22,204 @@
             border-radius: 0.5rem;
             font-weight: 500;
             color: white;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
             opacity: 0;
             transform: translateY(-20px);
-            transition: opacity 0.3s ease, transform 0.3s ease;
+            transition: all 0.3s ease;
         }
+        .message-box.show { opacity: 1; transform: translateY(0); }
         .message-box.success { background-color: #22c55e; }
         .message-box.error   { background-color: #ef4444; }
-        .message-box.warning { background-color: #f59e0b; }
         .message-box.info    { background-color: #3b82f6; }
-        .message-box.debug   { background-color: #6b7280; }
         
-        /* Estilo para el spinner de carga (oculto por defecto) */
+        /* Spinner para botones y cargas */
         .spinner {
-            border: 4px solid rgba(0, 0, 0, .1);
-            border-left-color: #3b82f6;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-left-color: currentColor;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 20px;
+            height: 20px;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .spinner-blue {
+            border-color: rgba(59, 130, 246, 0.1);
+            border-left-color: #3b82f6;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Animación suave para secciones */
+        .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-gray-100 font-sans">
 
+    <div id="dynamic-messages" class="message-container"></div>
+
     <div class="flex h-screen overflow-hidden">
+        
         <aside id="sidebar" class="w-72 bg-gray-800 text-white flex flex-col fixed h-full shadow-lg z-20 transition-transform duration-300 ease-in-out">
-            <div class="h-20 flex items-center justify-between px-4 shadow-md">
-                <h1 class="text-2xl font-bold tracking-wide text-indigo-300">📘 Registro Pedagógico</h1>
-                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
-                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none"
-                         viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
+            
+            <div class="relative p-4 pt-6 border-b border-gray-700"> 
+                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="absolute top-2 right-2 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
+                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
                 </button>
+                <div class="flex justify-center mb-4 mt-6">
+                    <img src="{% static 'img/img.jpg' %}" alt="Logo de la Institución" class="h-32 w-32 rounded-full border-4 border-gray-600 object-cover">
+                </div>
+                <h2 class="text-xl font-semibold text-center text-gray-100 uppercase mb-4">
+                    UNIDAD EDUCATIV<br>REPÚBLICA ÁRABE DE EGIPTO
+                </h2>
             </div>
+
             <nav class="flex-1 py-6 px-4 space-y-3 overflow-y-auto">
                 <a href="/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
-                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/>
+                    </svg>
                     <span>Inicio</span>
                 </a>
+
                 <a href="/registrar-persona/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
-                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A1.875 1.875 0 0 1 14.25 21h-4.5A1.875 1.875 0 0 1 3 19.235Z"/>
+                    </svg>
                     <span>Registrar Usuario</span>
                 </a>
+
                 <a href="/cursos/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
-                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/>
+                    </svg>
                     <span>Cursos</span>
                 </a>
+
                 <a href="/materias/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
-                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+                    </svg>
                     <span>Materias</span>
                 </a>
+
                 <a href="/trimestres/" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
-                    <svg class="h-6 w-6" ...><path .../></svg>
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/>
+                    </svg>
                     <span>Trimestres</span>
                 </a>
             </nav>
+
             <div class="p-4 mt-auto border-t border-gray-700">
                 <form action="/logout/" method="post" class="inline w-full">
-                    <input type="hidden" name="csrfmiddlewaretoken" value="XYZ">
+                    {% csrf_token %}
                     <button type="submit" class="flex items-center justify-center space-x-3 w-full px-3 py-3 rounded-md font-medium text-white bg-red-600 hover:bg-red-700 transition">
-                        <svg class="h-6 w-6" ...><path .../></svg>
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/></svg>
                         <span>Cerrar Sesión</span>
                     </button>
                 </form>
             </div>
         </aside>
 
-        <button id="sidebar-open-btn" aria-label="Abrir menú"
-                class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
-            <svg class="h-7 w-7" ...><path .../></svg>
+        <button id="sidebar-open-btn" aria-label="Abrir menú" class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
+            <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
 
-        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out">
+        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out bg-gray-50">
             <div class="container mx-auto p-10">
                 
-                <header class="mb-10 flex items-center justify-between">
-                    <div>
-                        <h2 class="text-5xl font-extrabold text-gray-800 drop-shadow-sm">Cargar Notas al SIE</h2>
-                        <p class="text-xl text-gray-500 mt-2">Inicia el proceso de carga automática al sistema del ministerio.</p>
-                    </div>
-                    <a href="{% url 'mi_admin:main_dashboard' %}" class="text-indigo-600 hover:text-indigo-800 font-medium">
-                        <span class="inline-flex items-center">
-                            <svg class="h-5 w-5 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 15 3 9m0 0 6-6M3 9h12a6 6 0 0 1 0 12h-3" />
-                            </svg>
-                            Volver al Dashboard
-                        </span>
-                    </a>
+                <header class="mb-10 border-b pb-6 border-gray-200">
+                    <h2 class="text-4xl font-extrabold text-gray-800">Cargar Notas al SIE</h2>
+                    <p class="text-lg text-gray-500 mt-2">Sistema automático de transferencia de notas.</p>
                 </header>
 
-                <form id="sie-form" action="{% url 'mi_admin:vista_subir_notas_sie' %}" method="post" class="bg-white p-10 rounded-xl shadow-lg max-w-4xl mx-auto space-y-8">
-                    {% csrf_token %}
-                    
-                    <fieldset class="border-b border-gray-200 pb-6">
-                        <legend class="text-2xl font-bold text-indigo-700 mb-4">1. Seleccione las Notas</legend>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div>
-                                <label for="trimestre" class="block text-sm font-medium text-gray-700">Trimestre</label>
-                                <select id="trimestre" name="trimestre" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                                    <option value="">Seleccione...</option>
-                                    {% for trim in trimestres %}
-                                        <option value="{{ trim.id }}">{{ trim }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div>
-                                <label for="curso" class="block text-sm font-medium text-gray-700">Curso</label>
-                                <select id="curso" name="curso" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                                    <option value="">Seleccione...</option>
-                                    {% for curso in cursos %}
-                                        <option value="{{ curso.id }}">{{ curso.get_full_name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div>
-                                <label for="materia" class="block text-sm font-medium text-gray-700">Materia</label>
-                                <select id="materia" name="materia" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                                    <option value="">Seleccione...</option>
-                                    {% for materia in materias %}
-                                        <option value="{{ materia.id }}">{{ materia.nombre }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
+                <div class="bg-white p-10 rounded-xl shadow-lg border border-gray-100 max-w-5xl mx-auto">
+                    <form id="sie-form" class="space-y-8">
+                        {% csrf_token %}
                         
-                        <div class="mt-6 flex items-center space-x-4">
-                            <button type="button" id="preview-button" class="flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                                </svg>
-                                Previsualizar Notas
+                        <div class="border-b border-gray-200 pb-8">
+                            <h3 class="text-2xl font-bold text-indigo-700 mb-6 flex items-center">
+                                <span class="bg-indigo-100 text-indigo-700 py-1 px-3 rounded-full text-sm mr-3">Paso 1</span> 
+                                Selección de Datos
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Trimestre</label>
+                                    <select id="trimestre" name="trimestre" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border bg-gray-50" required>
+                                        <option value="">Seleccione...</option>
+                                        {% for trim in trimestres %}
+                                            <option value="{{ trim.id }}">{{ trim }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Curso</label>
+                                    <select id="curso" name="curso" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border bg-gray-50" required>
+                                        <option value="">Seleccione...</option>
+                                        {% for curso in cursos %}
+                                            <option value="{{ curso.id }}">{{ curso.get_full_name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Materia</label>
+                                    <select id="materia" name="materia" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border bg-gray-50" required>
+                                        <option value="">Seleccione...</option>
+                                        {% for materia in materias %}
+                                            <option value="{{ materia.id }}">{{ materia.nombre }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 flex items-center gap-4">
+                                <button type="button" id="preview-button" class="bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 px-5 py-2.5 rounded-lg font-semibold flex items-center transition">
+                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    Previsualizar Notas
+                                </button>
+                                <div id="preview-spinner" class="spinner spinner-blue hidden"></div>
+                            </div>
+                        </div>
+
+                        <div class="border-b border-gray-200 pb-8">
+                            <h3 class="text-2xl font-bold text-red-700 mb-6 flex items-center">
+                                <span class="bg-red-100 text-red-700 py-1 px-3 rounded-full text-sm mr-3">Paso 2</span>
+                                Credenciales SIE (Director)
+                            </h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Usuario</label>
+                                    <input type="text" name="username_sie" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border bg-gray-50" required placeholder="Usuario SIE">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-gray-700 mb-2">Contraseña</label>
+                                    <input type="password" name="password_sie" class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-3 border bg-gray-50" required placeholder="••••••••">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <button type="submit" id="submit-btn" class="w-full flex justify-center items-center py-4 px-6 border border-transparent rounded-xl shadow-md text-xl font-bold text-white bg-red-600 hover:bg-red-700 transition transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                <span id="btn-text">🚀 Iniciar Carga Automática</span>
+                                <div id="submit-spinner" class="spinner ml-3 hidden"></div>
                             </button>
-                            <div id="preview-spinner" class="spinner hidden"></div>
+                            <p class="text-center text-sm text-gray-500 mt-3">El bot se ejecutará en segundo plano. Por favor no cierres esta pestaña hasta ver el mensaje de éxito.</p>
                         </div>
-                        </fieldset>
+                    </form>
+                </div>
 
-                    <fieldset class="border-b border-gray-200 pb-6">
-                        <legend class="text-2xl font-bold text-red-700 mb-4">2. Credenciales del SIE</legend>
-                        <p class="text-sm text-gray-500 mb-4">Estas credenciales se usarán solo para esta carga y no se guardarán.</p>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="username_sie" class="block text-sm font-medium text-gray-700">Usuario SIE (Director)</label>
-                                <input type="text" name="username_sie" id="username_sie" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                            </div>
-                            <div>
-                                <label for="password_sie" class="block text-sm font-medium text-gray-700">Contraseña SIE</label>
-                                <input type="password" name="password_sie" id="password_sie" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" required>
-                            </div>
-                        </div>
-                    </fieldset>
-
-                    <div>
-                        <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-lg font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                            <svg class="h-6 w-6 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" /></svg>
-    
-                            Iniciar Carga Automática
-                        </button>
-                    </div>
-                </form>
-
-                <div id="preview-section" class="bg-white p-10 rounded-xl shadow-lg max-w-4xl mx-auto mt-12 hidden">
-                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Previsualización de Notas</h3>
-                    <div id="preview-error" class="hidden p-4 mb-4 text-sm text-red-700 bg-red-100 rounded-lg" role="alert">
-                        </div>
-                    <div class="overflow-x-auto">
+                <div id="preview-section" class="bg-white p-10 rounded-xl shadow-lg border border-gray-100 max-w-5xl mx-auto mt-10 hidden animate-fade-in">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-6 border-l-4 border-indigo-500 pl-4">Vista Previa de Datos</h3>
+                    
+                    <div id="preview-error" class="hidden p-4 mb-6 text-red-700 bg-red-50 border border-red-200 rounded-lg"></div>
+                    
+                    <div class="overflow-hidden rounded-lg border border-gray-200">
                         <table class="min-w-full divide-y divide-gray-200">
                             <thead class="bg-gray-50">
                                 <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estudiante</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">C.I.</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Nota Final</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">#</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estudiante</th>
+                                    <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Carnet (CI)</th>
+                                    <th class="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Nota Final</th>
                                 </tr>
                             </thead>
                             <tbody id="preview-table-body" class="bg-white divide-y divide-gray-200">
@@ -206,127 +227,186 @@
                         </table>
                     </div>
                 </div>
-                </div>
 
-            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200">
-                <p>&copy; 2025 Registro Pedagógico. Todos los derechos reservados.</p>
+            </div>
+
+            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200 bg-white">
+                <p>Unidad Educativa "República Árabe de Egipto" – Código RUE 80730087</p>
+                <p>&copy; {% now "Y" %} – Sistema de Control del Registro Pedagógico.</p>
             </footer>
         </main>
     </div>
 
-    <div id="message-container" class="message-container">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="message-box {{ message.tags }}" role="alert">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // ... (Tu código de animación de mensajes y sidebar va aquí) ...
-            // (No lo he borrado, solo lo he omitido por brevedad)
-        });
-    </script>
-    
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+        
+        /* =========================================
+           1. LOGICA DEL SIDEBAR (Layout Dashboard)
+           ========================================= */
+        const sidebar = document.getElementById('sidebar');
+        const closeBtn = document.getElementById('sidebar-close-btn');
+        const openBtn  = document.getElementById('sidebar-open-btn');
+        const mainContent = document.getElementById('main-content'); 
+
+        function setSidebarClosed(closed) {
+            if (!sidebar || !openBtn || !mainContent || !closeBtn) return;
+            if (closed) {
+                sidebar.classList.add('-translate-x-full');
+                openBtn.classList.remove('hidden');
+                if (mainContent) { 
+                    mainContent.classList.remove('ml-72');
+                    mainContent.classList.add('ml-0');
+                }
+            } else {
+                sidebar.classList.remove('-translate-x-full');
+                openBtn.classList.add('hidden');
+                if (mainContent) {
+                    mainContent.classList.remove('ml-0');
+                    mainContent.classList.add('ml-72');
+                }
+            }
+        }
+
+        // Estado inicial
+        const initiallyClosed = sidebar ? sidebar.classList.contains('-translate-x-full') : false;
+        setSidebarClosed(initiallyClosed);
+
+        function toggleSidebar() {
+            const isClosed = sidebar.classList.contains('-translate-x-full');
+            setSidebarClosed(!isClosed);
+        }
+
+        if(closeBtn) closeBtn.addEventListener('click', toggleSidebar);
+        if(openBtn) openBtn.addEventListener('click', toggleSidebar);
+
+        // Resize automático
+        window.addEventListener('resize', () => {
+            if (window.innerWidth >= 1024) setSidebarClosed(false);
+        });
+
+
+        /* =========================================
+           2. LÓGICA FUNCIONAL (Carga SIE)
+           ========================================= */
+        
+        // Variables
         const previewButton = document.getElementById('preview-button');
         const previewSpinner = document.getElementById('preview-spinner');
         const previewSection = document.getElementById('preview-section');
         const previewTableBody = document.getElementById('preview-table-body');
         const previewError = document.getElementById('preview-error');
+        const form = document.getElementById('sie-form');
+        const submitBtn = document.getElementById('submit-btn');
+        const btnText = document.getElementById('btn-text');
+        const submitSpinner = document.getElementById('submit-spinner');
 
-        // Formulario y token CSRF
-        const sieForm = document.getElementById('sie-form');
-        const csrfToken = sieForm.querySelector('input[name="csrfmiddlewaretoken"]').value;
-
+        // --- Previsualización ---
         previewButton.addEventListener('click', async function() {
-            // 1. Mostrar spinner y ocultar errores/tabla anteriores
             previewSpinner.classList.remove('hidden');
             previewSection.classList.add('hidden');
             previewError.classList.add('hidden');
-            previewTableBody.innerHTML = ''; // Limpiar tabla
+            
+            const trimestre = document.getElementById('trimestre').value;
+            const curso = document.getElementById('curso').value;
+            const materia = document.getElementById('materia').value;
 
-            // 2. Obtener los valores de los dropdowns
-            const trimestreId = document.getElementById('trimestre').value;
-            const cursoId = document.getElementById('curso').value;
-            const materiaId = document.getElementById('materia').value;
-
-            // 3. Validar que se haya seleccionado algo
-            if (!trimestreId || !cursoId || !materiaId) {
-                showError('Por favor, seleccione un trimestre, un curso y una materia para previsualizar.');
+            if (!trimestre || !curso || !materia) {
+                showFloatingMessage('Por favor, selecciona trimestre, curso y materia primero.', 'error');
+                previewSpinner.classList.add('hidden');
                 return;
             }
 
             try {
-                // 4. Construir la URL con query parameters
-                const queryParams = new URLSearchParams({
-                    trimestre_id: trimestreId,
-                    curso_id: cursoId,
-                    materia_id: materiaId
-                });
-                
-                // Esta es la URL que debemos crear en urls.py
-                const url = `{% url 'mi_admin:ajax_preview_notas' %}?${queryParams.toString()}`;
-
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Error del servidor: ${response.statusText}`);
-                }
-
+                const params = new URLSearchParams({ trimestre_id: trimestre, curso_id: curso, materia_id: materia });
+                const response = await fetch(`{% url 'mi_admin:ajax_preview_notas' %}?${params}`);
                 const data = await response.json();
 
-                // 5. Procesar la respuesta
                 if (data.error) {
-                    showError(data.error);
-                } else if (data.notas && data.notas.length > 0) {
-                    populateTable(data.notas);
+                    previewError.textContent = data.error;
+                    previewError.classList.remove('hidden');
+                    previewSection.classList.remove('hidden');
                 } else {
-                    showError('No se encontraron notas para la selección actual.');
+                    let html = '';
+                    if (data.notas.length === 0) {
+                        html = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No hay notas registradas para esta selección.</td></tr>';
+                    } else {
+                        data.notas.forEach((n, i) => {
+                            html += `<tr class="hover:bg-gray-50 transition">
+                                <td class="px-6 py-4 text-sm text-gray-900">${i + 1}</td>
+                                <td class="px-6 py-4 text-sm text-gray-700 font-medium">${n.nombre_estudiante}</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">${n.ci_estudiante || 'Sin CI'}</td>
+                                <td class="px-6 py-4 text-sm text-right font-bold ${n.nota_final < 51 ? 'text-red-600' : 'text-green-600'}">${n.nota_final}</td>
+                            </tr>`;
+                        });
+                    }
+                    previewTableBody.innerHTML = html;
+                    previewSection.classList.remove('hidden');
+                    // Scroll suave hacia la tabla
+                    previewSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
-
-            } catch (error) {
-                console.error('Error en fetch:', error);
-                showError('Ocurrió un error al consultar las notas. Revise la consola.');
+            } catch (err) {
+                showFloatingMessage('Error de conexión al intentar previsualizar.', 'error');
             } finally {
-                // 6. Ocultar spinner
                 previewSpinner.classList.add('hidden');
             }
         });
 
-        function populateTable(notas) {
-            let rowHtml = '';
-            notas.forEach((nota, index) => {
-                rowHtml += `
-                    <tr>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${index + 1}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${nota.nombre_estudiante}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${nota.ci_estudiante || 'N/A'}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right font-bold">${nota.nota_final}</td>
-                    </tr>
-                `;
-            });
-            previewTableBody.innerHTML = rowHtml;
-            previewSection.classList.remove('hidden');
-        }
+        // --- Envío del Formulario (AJAX) ---
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault(); 
 
-        function showError(message) {
-            previewError.textContent = message;
-            previewError.classList.remove('hidden');
-            previewSection.classList.remove('hidden'); // Muestra la sección para que se vea el error
-            previewSpinner.classList.add('hidden');
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+            btnText.textContent = 'Procesando Carga...';
+            submitSpinner.classList.remove('hidden');
+
+            const formData = new FormData(form);
+
+            try {
+                const response = await fetch("{% url 'mi_admin:vista_subir_notas_sie' %}", {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+                
+                const data = await response.json();
+
+                if (response.ok) {
+                    showFloatingMessage(data.message, 'success');
+                } else {
+                    showFloatingMessage(data.message || 'Error al iniciar la carga.', 'error');
+                }
+
+            } catch (error) {
+                console.error(error);
+                showFloatingMessage('Error de comunicación con el servidor.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+                btnText.textContent = '🚀 Iniciar Carga Automática';
+                submitSpinner.classList.add('hidden');
+            }
+        });
+
+        // --- Función de Mensajes Flotantes ---
+        function showFloatingMessage(text, type) {
+            const container = document.getElementById('dynamic-messages');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message-box ${type}`;
+            msgDiv.textContent = text;
+            
+            container.appendChild(msgDiv);
+            
+            setTimeout(() => msgDiv.classList.add('show'), 10);
+            
+            setTimeout(() => {
+                msgDiv.classList.remove('show');
+                setTimeout(() => msgDiv.remove(), 300);
+            }, 5000);
         }
     });
     </script>
-
 </body>
 </html>
