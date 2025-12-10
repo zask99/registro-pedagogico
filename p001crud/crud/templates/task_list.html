@@ -1,0 +1,121 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gestión de Tareas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes slideIn {
+        from { transform: translateY(20px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
+      .animate-slide-in { animation: slideIn 0.6s ease-out; }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      .animate-fade-in { animation: fadeIn 1s ease-in; }
+    </style>
+  </head>
+  <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-black text-white min-h-screen p-4 font-sans">
+    <div class="max-w-md mx-auto space-y-6 animate-slide-in">
+      <h1 class="text-3xl font-bold text-center text-indigo-400 animate-fade-in">📝 Gestión de Tareas</h1>
+
+      <!-- Formulario de nueva tarea -->
+      <form action="" method="post" class="bg-gray-800 p-4 rounded-xl shadow-lg space-y-4 animate-fade-in">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="w-full py-2 px-4 bg-indigo-600 hover:bg-indigo-700 transition-colors duration-300 rounded-lg font-semibold">
+          Guardar Tarea
+        </button>
+      </form>
+
+      <!-- Tareas Completadas -->
+      <div class="space-y-2">
+        <h2 class="text-green-400 font-semibold text-xl">✅ Tareas Completadas</h2>
+        <ul class="space-y-2">
+          {% for task in completed_tasks %}
+          <li class="bg-gray-700 p-4 rounded-lg shadow-md animate-fade-in hover:scale-105 transition-transform">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex-1">
+                <strong class="text-yellow-300">{{ task.title }}</strong><br />
+                <span class="text-sm text-yellow-100">{{ task.description }}</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <!-- Checkbox -->
+                <form action="{% url 'crud:update_task' task.id %}" method="post">
+                  {% csrf_token %}
+                  <input type="checkbox" name="completed" onchange="this.form.submit()" {% if task.is_completed %}checked{% endif %} class="accent-yellow-400 w-5 h-5 transition duration-200" />
+                </form>
+                <!-- Editar -->
+                <form action="{% url 'crud:edit_task' task.id %}" method="get">
+                  <button type="submit" class="p-2 rounded-full hover:bg-indigo-600 transition duration-300 group" title="Editar tarea">
+                    <svg class="w-5 h-5 text-indigo-400 group-hover:text-white transition duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M11 5h2m-1 1v12m8-6a8 8 0 11-16 0 8 8 0 0116 0z"/>
+                    </svg>
+                  </button>
+                </form>
+                <!-- Eliminar -->
+                <form action="{% url 'crud:delete_task' task.id %}" method="post">
+                  {% csrf_token %}
+                  <button type="submit" class="p-2 rounded-full hover:bg-red-600 transition duration-300 group" title="Eliminar">
+                    <svg class="w-5 h-5 text-red-400 group-hover:text-white transition duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                  </button>
+                </form>
+              </div>
+            </div>
+          </li>
+          {% empty %}
+          <li class="text-gray-400">No hay tareas guardadas</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      <!-- Tareas Incompletas -->
+      <div class="space-y-2">
+        <h2 class="text-yellow-400 font-semibold text-xl">🕒 Tareas Incompletas</h2>
+        <ul class="space-y-2">
+          {% for task in incomplete_tasks %}
+          <li class="bg-gray-700 p-4 rounded-lg shadow-md flex justify-between items-center animate-fade-in hover:scale-105 transition-transform">
+            <div>
+              <strong class="text-yellow-300">{{ task.title }}</strong><br />
+              <span class="text-sm text-yellow-100">{{ task.description }}</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <!-- Checkbox -->
+              <form action="{% url 'crud:update_task' task.id %}" method="post">
+                {% csrf_token %}
+                <input type="checkbox" name="completed" onchange="this.form.submit()" {% if task.is_completed %}checked{% endif %} class="accent-yellow-400 w-5 h-5" />
+              </form>
+              <!-- Editar -->
+              <form action="{% url 'crud:edit_task' task.id %}" method="get">
+                <button type="submit" class="p-2 rounded-full hover:bg-indigo-600 transition duration-300 group" title="Editar tarea">
+                  <svg class="w-5 h-5 text-indigo-400 group-hover:text-white transition duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5h2m-1 1v12m8-6a8 8 0 11-16 0 8 8 0 0116 0z"/>
+                  </svg>
+                </button>
+              </form>
+              <!-- Eliminar -->
+              <form action="{% url 'crud:delete_task' task.id %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="p-2 rounded-full hover:bg-red-600 transition duration-300 group" title="Eliminar">
+                  <svg class="w-5 h-5 text-red-400 group-hover:text-white transition duration-300" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </form>
+            </div>
+          </li>
+          {% empty %}
+          <li class="text-gray-400">No hay tareas guardadas</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>
