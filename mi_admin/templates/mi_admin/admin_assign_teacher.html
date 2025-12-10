@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <title>Asignar Materia y Docente</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% load widget_tweaks %}
+
+    <style>
+        /* Estilos específicos para select y option en modo oscuro */
+        .dark select {
+            color: white !important; /* Fuerza el color del texto a blanco */
+            background-color: #4b5563 !important; /* bg-gray-600 en hexadecimal */
+            border-color: #6b7280 !important; /* border-gray-500 en hexadecimal */
+            /* Quita el estilo nativo del select para mayor control */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            /* Añade una pequeña flecha personalizada si el navegador la quita */
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3e%3cpath d='M7 7l3-3 3 3m0 6l-3 3-3-3' stroke='%23ffffff' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem; /* Espacio para la flecha */
+        }
+        
+        .dark select option {
+            color: white !important; /* Fuerza el color del texto de las opciones a blanco */
+            background-color: #4b5563 !important; /* bg-gray-600 para el fondo de las opciones */
+        }
+
+        /* Estilo para las opciones al pasar el ratón o estar seleccionadas en el dropdown nativo */
+        /* Puede variar la efectividad según el navegador */
+        .dark select option:hover,
+        .dark select option:checked {
+            background-color: #3b82f6 !important; /* Un azul claro, similar a bg-blue-500 */
+            color: white !important;
+        }
+
+        /* Estilo para opciones deshabilitadas */
+        .dark select option:disabled {
+            background-color: #374151 !important; /* bg-gray-700 más oscuro */
+            color: #9ca3af !important; /* text-gray-400 */
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 to-gray-800 text-white min-h-screen flex flex-col items-center p-6">
+
+    <header class="w-full max-w-2xl flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-extrabold text-blue-400 drop-shadow-lg">Asignar Materia y Docente</h1>
+        <a href="{% url 'mi_admin:admin_listar_cursos' %}" class="bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-sm font-semibold transition shadow-md">
+            Volver a Cursos
+        </a>
+    </header>
+
+    {% if messages %}
+        <div class="w-full max-w-2xl mb-6 space-y-2">
+            {% for message in messages %}
+                <div class="
+                    px-4 py-3 rounded-lg text-sm font-medium
+                    {% if message.tags == 'success' %} bg-green-500 text-white
+                    {% elif message.tags == 'error' %} bg-red-500 text-white
+                    {% elif message.tags == 'warning' %} bg-yellow-400 text-black
+                    {% else %} bg-blue-500 text-white
+                    {% endif %}
+                ">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <main class="w-full max-w-2xl bg-gray-700 rounded-xl p-8 shadow-lg">
+        <h2 class="text-2xl font-bold text-blue-300 mb-6">
+            Crear Nueva Asignación
+        </h2>
+
+        <form method="post" class="space-y-6" id="assignmentForm">
+            {% csrf_token %}
+            
+            {% for field in form %}
+                <div class="mb-4">
+                    <label for="{{ field.id_for_label }}" class="block text-gray-300 text-sm font-bold mb-2">{{ field.label }}:</label>
+                    
+                    {{ field|add_class:"w-full p-3 rounded-lg bg-gray-600 text-white border border-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400" }}
+                    
+                    {% if field.help_text %}
+                        <p class="text-gray-400 text-xs italic mt-1">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <p class="text-red-400 text-xs italic mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+
+            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition duration-200">
+                Guardar Asignación
+            </button>
+        </form>
+
+        <h3 class="text-xl font-bold text-blue-300 mt-10 mb-4">Asignaciones Existentes para esta Materia y Año</h3>
+        <div class="overflow-x-auto rounded-lg shadow-md">
+            <table class="min-w-full divide-y divide-gray-600">
+                <thead class="bg-gray-600">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Materia</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Curso</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Docente</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Año Académico</th>
+                    </tr>
+                </thead>
+                <tbody id="assignmentsTableBody" class="bg-gray-700 divide-y divide-gray-600">
+                    <tr>
+                        <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 text-center">
+                            Selecciona una materia y/o año para ver las asignaciones.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <footer class="mt-12 text-gray-500 text-sm text-center">
+        <p>&copy; 2025 Registro Pedagógico. Todos los derechos reservados.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const materiaSelect = document.getElementById('{{ form.materia.id_for_label }}');
+            const anioAcademicoInput = document.getElementById('{{ form.anio_academico.id_for_label }}');
+            const cursoSelect = document.getElementById('{{ form.curso.id_for_label }}');
+            const assignmentsTableBody = document.getElementById('assignmentsTableBody');
+
+            // URL base de la API. Django no puede interpolar el ID en el template directamente para JS.
+            // Usamos un placeholder y lo reemplazamos en JS.
+            const API_BASE_URL = "{% url 'mi_admin:api_get_materia_assignments' 0 %}".replace('/0/', '/{materia_id}/');
+
+            async function fetchAssignments() {
+                const materiaId = materiaSelect.value;
+                const anioAcademico = anioAcademicoInput.value;
+
+                // Limpiar la tabla y re-habilitar todas las opciones del curso
+                assignmentsTableBody.innerHTML = `<tr>
+                    <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 text-center">
+                        Cargando asignaciones...
+                    </td>
+                </tr>`;
+                
+                // Re-habilitar todas las opciones del curso antes de filtrar
+                Array.from(cursoSelect.options).forEach(option => {
+                    option.disabled = false;
+                });
+
+                if (!materiaId) {
+                    assignmentsTableBody.innerHTML = `<tr>
+                        <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 text-center">
+                            Selecciona una materia para ver las asignaciones.
+                        </td>
+                    </tr>`;
+                    return;
+                }
+
+                let url = API_BASE_URL.replace('{materia_id}', materiaId);
+                if (anioAcademico) {
+                    url += `?anio=${anioAcademico}`;
+                }
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        if (response.status === 404) {
+                            assignmentsTableBody.innerHTML = `<tr>
+                                <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 text-center">
+                                    Materia no encontrada o URL de API incorrecta.
+                                </td>
+                            </tr>`;
+                            return;
+                        }
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+
+                    assignmentsTableBody.innerHTML = ''; // Limpiar contenido anterior
+
+                    if (data.length === 0) {
+                        assignmentsTableBody.innerHTML = `<tr>
+                            <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-gray-400 text-center">
+                                No hay asignaciones existentes para esta materia y año.
+                            </td>
+                        </tr>`;
+                    } else {
+                        const assignedCourseIds = new Set();
+                        data.forEach(assignment => {
+                            const row = `
+                                <tr class="hover:bg-gray-600">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">${materiaSelect.options[materiaSelect.selectedIndex].text}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">${assignment.curso_nombre}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">${assignment.docente_nombre}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-200">${assignment.anio_academico}</td>
+                                </tr>
+                            `;
+                            assignmentsTableBody.insertAdjacentHTML('beforeend', row);
+                            assignedCourseIds.add(String(assignment.curso_id)); // Convertir a string para comparación
+                        });
+
+                        // Deshabilitar cursos ya asignados
+                        Array.from(cursoSelect.options).forEach(option => {
+                            if (assignedCourseIds.has(option.value)) {
+                                option.disabled = true;
+                                option.title = `Este curso ya está asignado a esta materia para el año ${anioAcademico}`;
+                            }
+                        });
+                        // Si el curso actualmente seleccionado está deshabilitado, resetearlo
+                        if (cursoSelect.value && cursoSelect.options[cursoSelect.selectedIndex].disabled) {
+                            cursoSelect.value = ""; // Desseleccionar
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error al obtener las asignaciones:", error);
+                    assignmentsTableBody.innerHTML = `<tr>
+                        <td colspan="4" class="px-6 py-4 whitespace-nowrap text-sm text-red-400 text-center">
+                            Error al cargar las asignaciones. Intenta de nuevo.
+                        </td>
+                    </tr>`;
+                }
+            }
+
+            // Event Listeners
+            materiaSelect.addEventListener('change', fetchAssignments);
+            anioAcademicoInput.addEventListener('change', fetchAssignments);
+            // También al cargar la página si ya hay valores pre-seleccionados
+            if (materiaSelect.value) {
+                fetchAssignments();
+            }
+        });
+    </script>
+</body>
+</html>

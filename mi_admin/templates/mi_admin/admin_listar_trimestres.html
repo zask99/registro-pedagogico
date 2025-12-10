@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gestionar Trimestres</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos para la ventana flotante de mensajes */
+        .message-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .message-box {
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            color: white;
+            opacity: 0; /* Hidden by default */
+            transform: translateY(-20px); /* Slightly off-screen */
+            animation: slideIn 0.5s forwards, fadeOut 0.5s 4s forwards; /* Slide in, then fade out after 4s */
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+            min-width: 250px;
+            max-width: 400px;
+            word-wrap: break-word; /* Ensure long messages wrap */
+        }
+
+        .message-box.success { background-color: #10B981; } /* Tailwind green-500 */
+        .message-box.error { background-color: #EF4444; } /* Tailwind red-500 */
+        .message-box.warning { background-color: #F59E0B; } /* Tailwind amber-500 */
+        .message-box.info { background-color: #3B82F6; } /* Tailwind blue-500 */
+
+        /* Keyframes para la animación */
+        @keyframes slideIn {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateY(-20px); /* Move up as it fades */
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white min-h-screen flex flex-col items-center px-6 py-8 font-sans">
+
+    <header class="w-full max-w-6xl bg-gradient-to-r from-blue-600 to-blue-700 rounded-t-xl shadow-2xl flex justify-between items-center px-8 py-5 mb-4">
+        <div class="flex items-center gap-3">
+            <button onclick="history.back()" 
+                    class="bg-white/20 hover:bg-white/40 transition rounded-md p-2 shadow-lg text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" 
+                     viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <h1 class="text-2xl font-extrabold tracking-wide">Gestionar Trimestres</h1>
+        </div>
+        <div class="flex gap-3">
+            <a href="{% url 'mi_admin:dashboard_administrativo' %}" 
+               class="bg-white/20 hover:bg-white/40 px-5 py-2 rounded-lg shadow-lg font-semibold transition">
+                Volver al Dashboard
+            </a>
+            <a href="{% url 'logout' %}" 
+               class="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-lg shadow-lg font-semibold transition">
+                Cerrar Sesión
+            </a>
+        </div>
+    </header>
+
+    <main class="w-full max-w-6xl bg-gray-800 bg-opacity-90 backdrop-blur-md rounded-b-xl shadow-2xl p-8">
+        <h2 class="text-3xl font-bold border-b border-blue-500 pb-3 mb-6">Lista de Trimestres</h2>
+
+        {% if trimestres %}
+            <div class="overflow-x-auto rounded-lg shadow-lg mb-8">
+                <table class="min-w-full text-sm font-medium text-left text-gray-200">
+                    <thead class="bg-blue-700">
+                        <tr>
+                            <th class="py-3 px-6 uppercase tracking-wide">Nombre</th>
+                            <th class="py-3 px-6 uppercase tracking-wide">Gestión</th>
+                            <th class="py-3 px-6 uppercase tracking-wide">Fecha Inicio</th>
+                            <th class="py-3 px-6 uppercase tracking-wide">Fecha Fin</th>
+                            <th class="py-3 px-6 uppercase tracking-wide text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for trimestre in trimestres %}
+                        <tr class="border-b border-blue-600 hover:bg-blue-700/30 cursor-pointer">
+                            <td class="py-3 px-6 font-semibold">{{ trimestre.nombre }}</td>
+                            <td class="py-3 px-6">{{ trimestre.gestion }}</td>
+                            <td class="py-3 px-6">{{ trimestre.fecha_inicio|date:"d/m/Y" }}</td>
+                            <td class="py-3 px-6">{{ trimestre.fecha_fin|date:"d/m/Y" }}</td>
+                            <td class="py-3 px-6 text-center space-x-2">
+                                <a href="{% url 'mi_admin:admin_editar_trimestre' trimestre.id %}" 
+                                   class="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-1 px-3 rounded-md transition text-xs">
+                                    Editar
+                                </a>
+                                <form action="{% url 'mi_admin:admin_eliminar_trimestre' trimestre.id %}" method="post" class="inline">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            onclick="return confirm('¿Estás seguro de que quieres eliminar este trimestre? Esta acción no se puede deshacer.')"
+                                            class="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded-md transition text-xs">
+                                        Eliminar
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-gray-400 text-center text-xl mt-10 mb-8">No hay trimestres registrados.</p>
+        {% endif %}
+
+        <h2 class="text-3xl font-bold border-b border-blue-500 pb-3 mb-6 mt-8">Añadir Nuevo Trimestre</h2>
+        <form method="post" class="space-y-4 bg-gray-700 p-6 rounded-lg shadow-md">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="mb-4">
+                    <label for="{{ field.id_for_label }}" class="block text-sm font-medium text-gray-300 mb-1">{{ field.label }}:</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                        <p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>
+                    {% endif %}
+                    {% for error in field.errors %}
+                        <p class="text-red-400 text-sm mt-1">{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endfor %}
+            {% if form.non_field_errors %}
+                <div class="text-red-400 text-sm mb-4">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <button type="submit" 
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800
+                           text-white font-bold py-3 px-8 rounded-lg shadow-xl transition transform hover:-translate-y-1 hover:shadow-2xl">
+                Guardar Trimestre
+            </button>
+        </form>
+    </main>
+
+    {# Contenedor para mensajes #}
+    <div id="message-container" class="message-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-box {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    <script>
+        // JavaScript para mostrar y ocultar los mensajes
+        document.addEventListener('DOMContentLoaded', function() {
+            const messageBoxes = document.querySelectorAll('.message-box');
+            messageBoxes.forEach(function(box) {
+                void box.offsetWidth; 
+                box.style.opacity = '1';
+                box.style.transform = 'translateY(0)';
+                setTimeout(function() {
+                    box.style.opacity = '0';
+                    box.style.transform = 'translateY(-20px)';
+                    box.addEventListener('transitionend', function() {
+                        box.remove();
+                    }, { once: true });
+                }, 4000);
+            });
+        });
+    </script>
+</body>
+</html>

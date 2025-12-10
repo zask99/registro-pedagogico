@@ -1,0 +1,301 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Docente - Registro Pedagógico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" integrity="sha512-Avb2QiuDEEvB4bZJYdft2mNjVShBftLdPG8FJ0V7irTLQ8Uo0qcPxh4Plq7G5tGm0rU+1SPhVotteLpBERwTkw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        /* Estilos personalizados para los mensajes (del template admin) */
+        .message-container {
+            position: fixed; top: 1.5rem; right: 1.5rem; z-index: 50;
+            display: flex; flex-direction: column; gap: 0.75rem;
+        }
+        .message-box {
+            padding: 1rem 1.5rem; border-radius: 0.5rem; font-weight: 500;
+            color: white; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            opacity: 0; transform: translateY(-20px); transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .message-box.success { background-color: #22c55e; }
+        .message-box.error   { background-color: #ef4444; }
+        .message-box.warning { background-color: #f59e0b; }
+        .message-box.info    { background-color: #3b82f6; }
+        .message-box.debug   { background-color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans">
+
+    <div class="flex h-screen overflow-hidden">
+        
+        <aside id="sidebar" class="w-72 bg-gray-800 text-white flex flex-col fixed h-full shadow-lg z-20 transition-transform duration-300 ease-in-out">
+            
+            <div class="relative p-4 pt-6 border-b border-gray-700"> 
+                <button id="sidebar-close-btn" aria-label="Cerrar menú" class="absolute top-2 right-2 p-2 rounded-md text-gray-300 hover:text-white hover:bg-gray-700 transition">
+                    <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+                </button>
+                
+                <div class="flex justify-center mb-4 mt-6"> <img src="{% static 'img/img.jpg' %}" alt="Logo de la Institución" class="h-32 w-32 rounded-full border-4 border-gray-600 object-cover">
+                </div>
+        
+                <h2 class="text-xl font-semibold text-center text-gray-100 uppercase mb-4">
+                    UNIDAD EDUCATIVA<br>REPÚBLICA ÁRABE DE EGIPTO
+                </h2>
+                </div>
+            <nav class="flex-1 py-6 px-4 space-y-3 overflow-y-auto">
+                <a href="{% url 'mi_admin:dashboard_docente' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+                    <span>Inicio</span>
+                </a>
+
+                <a href="{% url 'mi_admin:listar_cursos_docente' %}" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"/></svg>
+                    <span>Mis Cursos</span>
+                </a>
+
+                
+                
+                <button id="open-profile-modal-btn" class="flex items-center space-x-3 px-3 py-3 rounded-md font-medium text-gray-200 hover:bg-gray-700 hover:text-white transition w-full text-left">
+                    <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7.5v3m0 0v3m0-3h3m-3 0h-3m-2.25-4.125a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM3 19.235v-.11a6.375 6.375 0 0 1 12.75 0v.109A1.875 1.875 0 0 1 14.25 21h-4.5A1.875 1.875 0 0 1 3 19.235Z"/></svg>
+                    <span>Datos Personales</span>
+                </button>
+                </nav>
+
+            <div class="p-4 mt-auto border-t border-gray-700">
+                <form action="{% url 'logout' %}" method="post" class="inline w-full">
+                    {% csrf_token %}
+                    <button type="submit" class="flex items-center justify-center space-x-3 w-full px-3 py-3 rounded-md font-medium text-white bg-red-600 hover:bg-red-700 transition">
+                        <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15M12 9l-3 3m0 0 3 3m-3-3h12.75"/></svg>
+                        <span>Cerrar Sesión</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+
+        <button id="sidebar-open-btn" aria-label="Abrir menú"
+                class="hidden fixed top-4 left-4 p-3 bg-gray-800 text-white rounded-md shadow-lg hover:bg-gray-700 transition z-30">
+            <svg class="h-7 w-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+
+        
+        <main id="main-content" class="flex-1 ml-72 h-screen overflow-y-auto transition-all duration-300 ease-in-out">
+            <div class="container mx-auto p-10">
+                
+                <header class="mb-16 flex items-center space-x-4">
+                    <div>
+                        <h2 class="text-5xl font-extrabold text-gray-800 drop-shadow-sm">Panel Docente</h2>
+                        <p class="text-xl text-gray-500 mt-2">Bienvenido/a, {{ nombre_docente|default:'Docente' }}. Gestiona tus cursos y estudiantes.</p>
+                    </div>
+                </header>
+
+                <h3 class="text-3xl font-bold text-indigo-700 mb-6">Atajos de Funciones</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                    
+                    <a href="{% url 'mi_admin:listar_cursos_docente' %}" class="bg-white p-10 rounded-xl shadow-lg hover:shadow-2xl transition-shadow transform hover:-translate-y-1">
+                        <h4 class="text-3xl font-bold text-blue-700 mb-4 flex items-center space-x-3">
+                            <i class="fas fa-clipboard-check fa-lg"></i>
+                            <span>Registrar Asistencia</span>
+                        </h4>
+                        <p class="text-lg text-gray-600">Accede a tus cursos para tomar la asistencia del día.</p>
+                    </a>
+
+                    <a href="{% url 'mi_admin:listar_cursos_docente' %}" class="bg-white p-10 rounded-xl shadow-lg hover:shadow-2xl transition-shadow transform hover:-translate-y-1">
+                        <h4 class="text-3xl font-bold text-green-700 mb-4 flex items-center space-x-3">
+                            <i class="fas fa-edit fa-lg"></i>
+                            <span>Registrar Calificaciones</span>
+                        </h4>
+                        <p class="text-lg text-gray-600">Ingresa las notas de tus estudiantes por trimestre.</p>
+                    </a>
+
+                    <a href="#" class="bg-white p-10 rounded-xl shadow-lg hover:shadow-2xl transition-shadow transform hover:-translate-y-1">
+                        <h4 class="text-3xl font-bold text-purple-700 mb-4 flex items-center space-x-3">
+                            <i class="fas fa-search fa-lg"></i>
+                            <span>Consultar Registros</span>
+                        </h4>
+                        <p class="text-lg text-gray-600">Revisa el historial de notas y asistencias.</p>
+                    </a>
+                </div>
+
+                <div class="mt-16">
+                     <h3 class="text-3xl font-bold text-indigo-700 mb-6">Reportes Finales o Parciales</h3>
+                     <div class="bg-white p-10 rounded-xl shadow-lg flex items-center justify-between flex-wrap gap-4">
+                         <p class="text-xl text-gray-700">Genera los boletines y centralizadores de tus materias.</p>
+                         <a href="#" class="flex items-center gap-3 py-4 px-8 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition transform hover:-translate-y-1 text-xl font-semibold">
+                            <i class="fas fa-file-alt text-2xl"></i> Generar Reportes
+                        </a>
+                     </div>
+                </div>
+
+            </div>
+
+            <footer class="text-center py-8 mt-16 text-base text-gray-500 border-t border-gray-200">
+                <p>Unidad Educativa "República Árabe de Egipto" – Código RUE 80730087</p>
+                <p>Calle Santa Cruz N° 534, Ciudad de La Paz – Bolivia | Tel. (591) 2 2456124</p>
+                <p>&copy; {% now "Y" %} – Sistema de Control del Registro Pedagógico. Todos los derechos reservados.</p>
+            </footer>
+        </main>
+    </div>
+
+    <div id="message-container" class="message-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message-box {{ message.tags }}" role="alert">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
+
+    <div id="profile-modal-overlay" class="fixed inset-0 bg-black bg-opacity-60 z-40 hidden" aria-hidden="true"></div>
+    
+    <div id="profile-modal" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white w-full max-w-2xl rounded-lg shadow-xl z-50 hidden overflow-hidden">
+        <div class="flex justify-between items-center p-5 bg-gray-100 border-b border-gray-200">
+            <h3 class="text-2xl font-bold text-gray-800">Mis Datos Personales</h3>
+            <button id="close-profile-modal-btn" class="text-gray-400 hover:text-gray-600 transition">
+                <svg class="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        
+        <div class="p-6 max-h-[70vh] overflow-y-auto">
+            {% if docente %}
+                <div class="space-y-6">
+                    <div>
+                        <h4 class="text-lg font-semibold text-indigo-700 border-b border-indigo-100 pb-2 mb-3">Información de Perfil</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+                            <div><strong class="text-gray-600">Nombre:</strong> {{ docente.persona.nombres }}</div>
+                            <div><strong class="text-gray-600">Apellidos:</strong> {{ docente.persona.apellidos }}</div>
+                            <div><strong class="text-gray-600">Usuario:</strong> {{ docente.persona.usuario.username }}</div>
+                            <div><strong class="text-gray-600">Email:</strong> {{ docente.persona.usuario.email }}</div>
+                            <div><strong class="text-gray-600">CI:</strong> {{ docente.persona.ci|default:"No registrado" }}</div>
+                            <div><strong class="text-gray-600">Celular:</strong> {{ docente.persona.celular|default:"No registrado" }}</div>
+                            <div class="col-span-2"><strong class="text-gray-600">Dirección:</strong> {{ docente.persona.direccion|default:"No registrada" }}</div>
+                            <div class="col-span-2"><strong class="text-gray-600">Especialidad:</strong> {{ docente.especialidad|default:"No registrada" }}</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 class="text-lg font-semibold text-indigo-700 border-b border-indigo-100 pb-2 mb-3">Mis Asignaciones (Cursos y Materias)</h4>
+                        {% if asignaciones_docente %}
+                            <ul class="list-disc list-inside space-y-1 text-sm text-gray-700">
+                                {% for asignacion in asignaciones_docente %}
+                                    <li>
+                                        <span class="font-semibold">{{ asignacion.materia.nombre }}</span> en 
+                                        <span>{{ asignacion.curso.get_full_name }}</span> 
+                                        (Año: {{ asignacion.anio_academico }})
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        {% else %}
+                            <p class="text-sm text-gray-500">No tiene materias asignadas actualmente.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-red-500">Error: No se pudieron cargar los datos del docente.</p>
+            {% endif %}
+        </div>
+
+        <div class="p-4 bg-gray-50 border-t border-gray-200 text-right">
+             <button id="close-profile-modal-btn-bottom" class="px-5 py-2 bg-gray-600 text-white text-sm font-medium rounded-md hover:bg-gray-700 transition">
+                Cerrar
+            </button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Lógica de Mensajes (sin cambios) ---
+            const messageBoxes = document.querySelectorAll('.message-box');
+            messageBoxes.forEach(function(box, index) {
+                setTimeout(() => {
+                    void box.offsetWidth;
+                    box.style.opacity = '1';
+                    box.style.transform = 'translateY(0)';
+                }, 100 * index);
+                setTimeout(() => {
+                    box.style.opacity = '0';
+                    box.style.transform = 'translateY(-20px)';
+                    box.addEventListener('transitionend', function() {
+                        box.remove();
+                    }, { once: true });
+                }, 4000 + (100 * index));
+            });
+
+            // --- Lógica del Sidebar (sin cambios) ---
+            const sidebar = document.getElementById('sidebar');
+            const closeBtn = document.getElementById('sidebar-close-btn');
+            const openBtn  = document.getElementById('sidebar-open-btn');
+            const mainContent = document.getElementById('main-content'); 
+
+            function setSidebarClosed(closed) {
+                if (closed) {
+                    sidebar.classList.add('-translate-x-full');
+                    openBtn.classList.remove('hidden');
+                    if (mainContent) { 
+                        mainContent.classList.remove('ml-72');
+                        mainContent.classList.add('ml-0');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'false');
+                } else {
+                    sidebar.classList.remove('-translate-x-full');
+                    openBtn.classList.add('hidden');
+                    if (mainContent) {
+                        mainContent.classList.remove('ml-0');
+                        mainContent.classList.add('ml-72');
+                    }
+                    closeBtn.setAttribute('aria-expanded', 'true');
+                }
+            }
+
+            const initiallyClosed = sidebar.classList.contains('-translate-x-full');
+            setSidebarClosed(initiallyClosed);
+
+            function toggleSidebar() {
+                const isClosed = sidebar.classList.contains('-translate-x-full');
+                setSidebarClosed(!isClosed);
+            }
+
+            closeBtn.addEventListener('click', toggleSidebar);
+            openBtn.addEventListener('click', toggleSidebar);
+
+            document.addEventListener('click', (e) => {
+                if (!sidebar.contains(e.target) && window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
+                    setSidebarClosed(true);
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.innerWidth >= 1024) { // lg
+                    setSidebarClosed(false);
+                }
+            });
+
+            // --- Lógica para el Modal de Perfil (sin cambios) ---
+            const modalOverlay = document.getElementById('profile-modal-overlay');
+            const modal = document.getElementById('profile-modal');
+            const openModalBtn = document.getElementById('open-profile-modal-btn');
+            const closeModalBtn = document.getElementById('close-profile-modal-btn');
+            const closeModalBtnBottom = document.getElementById('close-profile-modal-btn-bottom');
+
+            function openModal() {
+                modalOverlay.classList.remove('hidden');
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal() {
+                modalOverlay.classList.add('hidden');
+                modal.classList.add('hidden');
+            }
+
+            if (openModalBtn) openModalBtn.addEventListener('click', openModal);
+            if (closeModalBtn) closeModalBtn.addEventListener('click', closeModal);
+            if (closeModalBtnBottom) closeModalBtnBottom.addEventListener('click', closeModal);
+            if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
+        });
+    </script>
+</body>
+</html>
